@@ -711,16 +711,38 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
 }
 @media (max-width: 700px) {
   .game-layout-container { padding: 0 12px 12px; gap: 12px; }
-  .hand { overflow-x: auto; justify-content: flex-start; padding: 26px 12px 30px; -webkit-overflow-scrolling: touch; gap: 12px; width: 100%; scrollbar-width: none; }
-  .hand::-webkit-scrollbar { display: none; }
-  .hand-slot { transform: none !important; margin: 0 !important; flex-shrink: 0; }
-  .acard { width: 130px; padding: 12px; border-radius: 12px; }
-  .acard-text { font-size: 14.5px; }
+  .stage { gap: 12px; margin-top: 4px; }
+  .hand {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: minmax(72px, auto);
+    gap: 8px;
+    padding: 10px 4px;
+    width: 100%;
+  }
+  .hand-slot { transform: none !important; margin: 0 !important; }
+  .hand-slot:last-child:nth-child(odd) { grid-column: span 2; }
+  .acard {
+    width: 100%;
+    height: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .acard-text {
+    font-size: 13px;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   .acard .card-foot { display: none; }
-  .flipwrap { width: 130px; }
-  .pcard { width: 250px; min-height: 170px; }
-  .pcard-text { font-size: 21px; }
-  .timerbar { max-width: 70vw; }
+  .acard-selected { transform: translateY(-6px) scale(1.02) !important; }
+  .acard-swapsel { transform: translateY(-6px) !important; }
+  .flipwrap { width: calc(50% - 6px); aspect-ratio: 2 / 1; }
+  .pcard { width: 220px; min-height: 120px; padding: 14px; }
+  .pcard-text { font-size: 18px; }
+  .timerbar { max-width: 80vw; }
   .reveal-prompt { width: 290px; }
   .bgcard { width: 110px; font-size: 11px; }
   .podium-block { width: 90px; }
