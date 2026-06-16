@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameContext, maxPlayersFor, ownsPack, sortPacks, isUserIndian } from '@/context/GameContext';
 import { Logo, Coin, LockIcon, Btn } from '@/components/components';
@@ -50,6 +50,15 @@ export default function CreateRoomPage() {
   const hasCustom = !!(account && account.upgrades.includes("customCards"));
 
   const [name, setName] = useState("");
+  const hasPrepopulated = useRef(false);
+
+  useEffect(() => {
+    if (isHydrated && account && account.name && !hasPrepopulated.current) {
+      setName(account.name);
+      hasPrepopulated.current = true;
+    }
+  }, [isHydrated, account]);
+
   const [maxPlayers, setMaxPlayers] = useState(Math.min(settings.maxPlayers, allowed));
   const [scoreLimit, setScoreLimit] = useState(settings.scoreLimit);
   const [timer, setTimer] = useState(settings.timer);
