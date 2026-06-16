@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useRouter } from 'next/navigation';
 import { GAME_DATA } from '../data/game-data';
 import { auth, isFirebaseEnabled } from '@/firebase/config';
-import { getUserProfile, setUserProfile, updateUserProfile } from '@/firebase/firestore';
+import { getUserProfile, setUserProfile, updateUserProfile, subscribeUserProfile } from '@/firebase/firestore';
 
 export interface AccountHistoryItem {
   label: string;
@@ -387,8 +387,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           firebaseUidRef.current = uid;
 
           // Subscribe to real-time updates for their Firestore profile
-          const { subscribeUserProfile, setUserProfile, updateUserProfile } = await import('@/firebase/firestore');
-          
           unsubscribeProfile = subscribeUserProfile(uid, async (profile: any) => {
             if (profile) {
               setAccount({
