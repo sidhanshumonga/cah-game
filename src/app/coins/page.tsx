@@ -26,7 +26,7 @@ export default function CoinsPage() {
   }, [router]);
 
   const handleBack = () => {
-    router.back();
+    router.push('/store');
   };
 
   const handleLogin = () => {
@@ -54,7 +54,7 @@ export default function CoinsPage() {
       });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url;
+        window.location.replace(data.url);
       } else {
         alert("Failed to initiate Stripe Checkout: " + (data.error || "Unknown error"));
       }

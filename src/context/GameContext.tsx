@@ -367,10 +367,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // ── Firebase Auth state observer + Firestore profile sync ─────────────────
   useEffect(() => {
     if (!isFirebaseEnabled || !auth) return;
-    let unsubscribe: () => void = () => {};
+    let unsubscribeAuth: () => void = () => {};
+    let unsubscribeProfile: (() => void) | null = null;
 
     import('firebase/auth').then(({ onAuthStateChanged }) => {
-      unsubscribe = onAuthStateChanged(auth, async (firebaseUser: any) => {
+      unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser: any) => {
+        if (unsubscribeProfile) {
+          unsubscribeProfile();
+          unsubscribeProfile = null;
+        }
+
         if (firebaseUser) {
           const uid: string = firebaseUser.uid;
           const email: string = firebaseUser.email || "";
@@ -380,42 +386,46 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
           firebaseUidRef.current = uid;
 
-          // Try to load profile from Firestore
-          const existingProfile = await getUserProfile(uid);
+          // Subscribe to real-time updates for their Firestore profile
+          const { subscribeUserProfile, setUserProfile, updateUserProfile } = await import('@/firebase/firestore');
+          
+          unsubscribeProfile = subscribeUserProfile(uid, async (profile: any) => {
+            if (profile) {
+              setAccount({
+                ...profile,
+                uid,
+                name: profile.name || displayName,
+                email,
+                color: profile.color || avatarColor,
+                admin: isAdmin,
+              });
+            } else {
+              // Create profile if it doesn't exist
+              const randomName = generateRandomName();
+              const newProfile: Account = {
+                uid,
+                name: randomName,
+                email,
+                color: avatarColor,
+                guest: false,
+                credits: 50,
+                packs: ["classic"],
+                upgrades: [],
+                history: [{ label: "Welcome bonus", delta: 50, ts: Date.now() }],
+                wins: 0,
+                games: 0,
+                createdAt: Date.now(),
+                admin: isAdmin,
+              };
+              await setUserProfile(uid, newProfile);
+            }
+          });
 
-          if (existingProfile) {
-            // Existing user — load from Firestore, preserve customized name and color
-            setAccount({
-              ...existingProfile,
-              uid,
-              name: existingProfile.name || displayName,
-              email,
-              color: existingProfile.color || avatarColor,
-              admin: isAdmin,
-            });
-            // Update email/admin status without overwriting their customized name/color
-            await updateUserProfile(uid, { email, admin: isAdmin });
-          } else {
-            // New user — create Firestore profile with welcome bonus
-            const randomName = generateRandomName();
-            const newProfile: Account = {
-              uid,
-              name: randomName,
-              email,
-              color: avatarColor,
-              guest: false,
-              credits: 50,
-              packs: ["classic"],
-              upgrades: [],
-              history: [{ label: "Welcome bonus", delta: 50, ts: Date.now() }],
-              wins: 0,
-              games: 0,
-              createdAt: Date.now(),
-              admin: isAdmin,
-            };
-            await setUserProfile(uid, newProfile);
-            setAccount(newProfile);
-          }
+          // Sync email/admin flags to Firestore once on sign in (non-blocking)
+          updateUserProfile(uid, { email, admin: isAdmin }).catch(err => {
+            console.error("Failed to sync auth details to Firestore profile", err);
+          });
+
         } else {
           // Signed out
           firebaseUidRef.current = null;
@@ -424,7 +434,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       });
     });
 
-    return () => { if (unsubscribe) unsubscribe(); };
+    return () => {
+      if (unsubscribeAuth) unsubscribeAuth();
+      if (unsubscribeProfile) (unsubscribeProfile as any)();
+    };
   }, [isFirebaseEnabled]);
 
   // ── Helper to persist account updates to Firestore ────────────────────────

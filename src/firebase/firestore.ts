@@ -54,6 +54,17 @@ export async function updateUserProfile(uid: string, partial: any): Promise<void
   }
 }
 
+export function subscribeUserProfile(uid: string, callback: (profile: any | null) => void): Unsubscribe | null {
+  if (!db) return null;
+  return onSnapshot(doc(db, 'users', uid), (snap) => {
+    if (snap.exists()) {
+      callback({ uid, ...snap.data() });
+    } else {
+      callback(null);
+    }
+  });
+}
+
 // ─────────────────────────────────────────────
 // PACKAGES (admin-seeded card packs)
 // ─────────────────────────────────────────────
