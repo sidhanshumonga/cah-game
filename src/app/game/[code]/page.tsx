@@ -189,20 +189,62 @@ function MultiplayerGame({ code }: { code: string }) {
     await sendReaction(code, emoji, myName);
   }, [code, myName]);
 
-  // Deal hand at start of each new round
+  // Deal hand at start of each new round or restore from localStorage on page reload
   useEffect(() => {
     if (!gameState) return;
     const round = gameState.round || 1;
     if (round !== lastRoundRef.current) {
       lastRoundRef.current = round;
-      setHand(Array.from({ length: 7 }, () => drawA.current?.() || ""));
+      
+      const storageKey = `cah-game-session-${code}-${myUid}`;
+      let loadedHand: string[] | null = null;
+      let loadedSwaps = 0;
+      
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.round === round && Array.isArray(parsed.hand)) {
+            loadedHand = parsed.hand;
+            loadedSwaps = parsed.swapsUsed || 0;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load game session", e);
+      }
+      
+      if (loadedHand) {
+        setHand(loadedHand);
+        setSwapsUsed(loadedSwaps);
+      } else {
+        const newHand = Array.from({ length: 7 }, () => drawA.current?.() || "");
+        setHand(newHand);
+        setSwapsUsed(0);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify({ round, hand: newHand, swapsUsed: 0 }));
+        } catch (e) {
+          console.error("Failed to save game session", e);
+        }
+      }
+      
       setMyPick(null);
       setMySubmitted(false);
       setFlipped(false);
       setSwapMode(false);
       setSwapPicks([]);
     }
-  }, [gameState?.round]);
+  }, [gameState?.round, code, myUid]);
+
+  // Sync submission state from Firestore gameState on reload / update
+  useEffect(() => {
+    if (!gameState || !myUid) return;
+    const subs = gameState.submissions || [];
+    const mySub = subs.find((s: any) => s.uid === myUid);
+    if (mySub) {
+      setMySubmitted(true);
+      setMyPick(mySub.text);
+    }
+  }, [gameState?.submissions, myUid]);
 
   // Flip cards after judging phase begins
   useEffect(() => {
@@ -383,10 +425,21 @@ function MultiplayerGame({ code }: { code: string }) {
 
   function doSwap() {
     if (!swapPicks.length) return;
-    setHand((h) => h.map((c, i) => (swapPicks.includes(i) ? drawA.current?.() || "" : c)));
-    setSwapsUsed((u) => u + 1);
+    const newHand = hand.map((c, i) => (swapPicks.includes(i) ? drawA.current?.() || "" : c));
+    const newSwaps = swapsUsed + 1;
+    setHand(newHand);
+    setSwapsUsed(newSwaps);
     setSwapMode(false);
     setSwapPicks([]);
+    
+    // Persist updated hand/swaps to localStorage
+    try {
+      const storageKey = `cah-game-session-${code}-${myUid}`;
+      const round = gameState?.round || 1;
+      localStorage.setItem(storageKey, JSON.stringify({ round, hand: newHand, swapsUsed: newSwaps }));
+    } catch (e) {
+      console.error("Failed to save game session on swap", e);
+    }
   }
 
   const swapCredits = Math.floor(((gameState?.round || 1) - 1) / every) - swapsUsed;
