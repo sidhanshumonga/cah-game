@@ -710,11 +710,14 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   .topbar-mid { display: none; }
 }
 @media (max-width: 700px) {
-  .hand { overflow-x: auto; justify-content: flex-start; padding: 26px 18px 30px; -webkit-overflow-scrolling: touch; }
-  .hand-slot { margin: 0 -8px; }
-  .acard { width: 150px; }
-  .acard-text { font-size: 16px; }
-  .flipwrap { width: 150px; }
+  .game-layout-container { padding: 0 12px 12px; gap: 12px; }
+  .hand { overflow-x: auto; justify-content: flex-start; padding: 26px 12px 30px; -webkit-overflow-scrolling: touch; gap: 12px; width: 100%; scrollbar-width: none; }
+  .hand::-webkit-scrollbar { display: none; }
+  .hand-slot { transform: none !important; margin: 0 !important; flex-shrink: 0; }
+  .acard { width: 130px; padding: 12px; border-radius: 12px; }
+  .acard-text { font-size: 14.5px; }
+  .acard .card-foot { display: none; }
+  .flipwrap { width: 130px; }
   .pcard { width: 250px; min-height: 170px; }
   .pcard-text { font-size: 21px; }
   .timerbar { max-width: 70vw; }
