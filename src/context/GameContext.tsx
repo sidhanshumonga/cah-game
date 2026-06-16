@@ -99,6 +99,7 @@ export interface GameContextType {
   buyUpgrade: (u: { id: string; price: number; name: string }) => void;
   buyCredits: (b: { coins: number; tag: string }) => void;
   handleLogin: (info: { name: string; email: string }) => void;
+  updateProfile: (updates: { name: string; color: string }) => Promise<void>;
   logout: () => void;
   startGame: (r: Player[], code?: string) => void;
   handleEnd: (players: Player[], history: HistoryEntry[], code?: string) => void;
@@ -127,6 +128,16 @@ function hashEmail(email: string): string {
     hash = email.charCodeAt(i) + ((hash << 5) - hash);
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+const ADJECTIVES = ["Silly", "Wobbly", "Giggle", "Sneaky", "Haunted", "Spooky", "Funky", "Rowdy", "Derpy", "Sassy", "Jolly", "Cheeky"];
+const NOUNS = ["Raccoon", "Roomba", "Toaster", "Crouton", "Sloth", "Hippo", "Badger", "Puffin", "Goose", "Llama", "Potato", "Noodle"];
+
+function generateRandomName(): string {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  const num = Math.floor(100 + Math.random() * 900);
+  return `${adj}${noun}${num}`;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -266,22 +277,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           const existingProfile = await getUserProfile(uid);
 
           if (existingProfile) {
-            // Existing user — load from Firestore, refresh display name
+            // Existing user — load from Firestore, preserve customized name and color
             setAccount({
               ...existingProfile,
               uid,
-              name: displayName,
+              name: existingProfile.name || displayName,
               email,
-              color: avatarColor,
+              color: existingProfile.color || avatarColor,
               admin: isAdmin,
             });
-            // Keep name in sync in Firestore if it changed
-            await updateUserProfile(uid, { name: displayName, email, color: avatarColor, admin: isAdmin });
+            // Update email/admin status without overwriting their customized name/color
+            await updateUserProfile(uid, { email, admin: isAdmin });
           } else {
             // New user — create Firestore profile with welcome bonus
+            const randomName = generateRandomName();
             const newProfile: Account = {
               uid,
-              name: displayName,
+              name: randomName,
               email,
               color: avatarColor,
               guest: false,
@@ -343,6 +355,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       persistToFirestore({ credits: updated.credits, history: newHistory });
       return updated;
     });
+  }, [persistToFirestore]);
+
+  const updateProfile = useCallback(async (updates: { name: string; color: string }) => {
+    setAccount((a) => {
+      if (!a) return a;
+      const updated = { ...a, ...updates };
+      persistToFirestore(updates);
+      return updated;
+    });
+    try {
+      const stored = localStorage.getItem("cah-account");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        localStorage.setItem("cah-account", JSON.stringify({ ...parsed, ...updates }));
+      }
+    } catch (e) {
+      console.error("Failed to save updated profile to local storage", e);
+    }
   }, [persistToFirestore]);
 
   // ── Sandbox login (no Firebase) ───────────────────────────────────────────
@@ -437,7 +467,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       isPacksLoaded,
       packs,
       getCardsForPacks,
-      spend, buyPack, buyUpgrade, buyCredits, handleLogin,
+      spend, buyPack, buyUpgrade, buyCredits, handleLogin, updateProfile,
       logout,
       startGame, handleEnd, replay
     }}>

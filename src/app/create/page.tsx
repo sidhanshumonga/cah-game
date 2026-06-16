@@ -49,7 +49,7 @@ export default function CreateRoomPage() {
   const allowed = maxPlayersFor(account);
   const hasCustom = !!(account && account.upgrades.includes("customCards"));
 
-  const [name, setName] = useState(account ? account.name : settings.name);
+  const [name, setName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(Math.min(settings.maxPlayers, allowed));
   const [scoreLimit, setScoreLimit] = useState(settings.scoreLimit);
   const [timer, setTimer] = useState(settings.timer);
@@ -293,8 +293,8 @@ export default function CreateRoomPage() {
           </section>
         </div>
         <div className="create-cta">
-          <Btn big={true} disabled={packs.length === 0} onClick={handleCreate}>
-            {packs.length === 0 ? "Pick at least 1 pack" : "Create room"}
+          <Btn big={true} disabled={packs.length === 0 || !name.trim()} onClick={handleCreate}>
+            {!name.trim() ? "Enter your name" : packs.length === 0 ? "Pick at least 1 pack" : "Create room"}
           </Btn>
           <span className="create-cta-hint">You'll get a room code and invite link to share</span>
         </div>

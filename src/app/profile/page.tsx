@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameContext } from '@/context/GameContext';
 import { Avatar, Coin, Logo, Btn } from '@/components/components';
@@ -8,13 +8,25 @@ import { GAME_DATA } from '@/data/game-data';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { account, isHydrated, logout, packs } = useGameContext();
+  const { account, isHydrated, logout, packs, updateProfile } = useGameContext();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState("");
 
   useEffect(() => {
     if (isHydrated && !account) {
       router.replace('/login');
     }
   }, [isHydrated, account, router]);
+
+  const a = account;
+
+  useEffect(() => {
+    if (a) {
+      setEditName(a.name);
+      setEditColor(a.color);
+    }
+  }, [a]);
 
   if (!isHydrated || !account) {
     return (
@@ -24,7 +36,6 @@ export default function ProfilePage() {
     );
   }
 
-  const a = account;
   const freePacks = packs.filter((p) => p.free || p.id === 'classic');
   const ownedPaid = packs.filter((p) => !(p.free || p.id === 'classic') && a.packs.includes(p.id));
   const ownedUpgrades = GAME_DATA.upgrades.filter((u) => a.upgrades.includes(u.id));
@@ -42,7 +53,7 @@ export default function ProfilePage() {
   };
 
   const handleEdit = () => {
-    router.push('/login');
+    setIsEditing(true);
   };
 
   const handleLogout = () => {
@@ -57,18 +68,67 @@ export default function ProfilePage() {
         <Logo />
       </header>
       <div className="create-body">
-        <div className="profile-hero">
-          <Avatar player={a} size={72} />
-          <div className="profile-id">
-            <h2 className="profile-name">{a.name}{a.guest ? " (guest)" : ""}</h2>
-            <span className="profile-email">{a.email || "No email — guest account"}</span>
-            <span className="profile-meta">{a.games} games · {a.wins} wins · joined {new Date(a.createdAt).toLocaleDateString()}</span>
+        {isEditing ? (
+          <div className="profile-hero profile-edit-mode">
+            <Avatar player={{ name: editName, color: editColor }} size={72} />
+            <div className="profile-id" style={{ width: '100%', maxWidth: '360px' }}>
+              <div className="frow" style={{ marginBottom: '12px' }}>
+                <label className="flabel" style={{ fontSize: '13px', fontWeight: 600 }}>Display Name</label>
+                <input
+                  className="input"
+                  maxLength={14}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div className="frow" style={{ marginBottom: '16px' }}>
+                <label className="flabel" style={{ fontSize: '13px', fontWeight: 600 }}>Avatar Color</label>
+                <div className="colorrow">
+                  {["#FF5C39", "#7C5CFF", "#2BC4BE", "#FF4D8D", "#5CA9FF", "#FFC93C"].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setEditColor(color)}
+                      className={"colordot" + (editColor === color ? " colordot-on" : "")}
+                      style={{ background: color, width: '28px', height: '28px' }}
+                      type="button"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="profile-hero-actions" style={{ gap: '10px' }}>
+              <Btn variant="accent" disabled={!editName.trim()} onClick={async () => {
+                await updateProfile({ name: editName.trim(), color: editColor });
+                setIsEditing(false);
+              }}>
+                Save Changes
+              </Btn>
+              <Btn variant="secondary" onClick={() => {
+                if (a) {
+                  setEditName(a.name);
+                  setEditColor(a.color);
+                }
+                setIsEditing(false);
+              }}>
+                Cancel
+              </Btn>
+            </div>
           </div>
-          <div className="profile-hero-actions">
-            <Btn variant="secondary" onClick={handleEdit}>Edit profile</Btn>
-            <Btn variant="ghost" onClick={handleLogout}>Log out</Btn>
+        ) : (
+          <div className="profile-hero">
+            <Avatar player={a} size={72} />
+            <div className="profile-id">
+              <h2 className="profile-name">{a.name}{a.guest ? " (guest)" : ""}</h2>
+              <span className="profile-email">{a.email || "No email — guest account"}</span>
+              <span className="profile-meta">{a.games} games · {a.wins} wins · joined {new Date(a.createdAt).toLocaleDateString()}</span>
+            </div>
+            <div className="profile-hero-actions">
+              <Btn variant="secondary" onClick={handleEdit}>Edit profile</Btn>
+              <Btn variant="ghost" onClick={handleLogout}>Log out</Btn>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="profile-grid">
           <section className="profile-card profile-balance">
