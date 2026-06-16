@@ -231,29 +231,47 @@ button.flipwrap:hover { transform: translateY(-8px); }
 
 /* Custom high contrast overrides for buttons inside light theme containers */
 .auth .btn:not(.secondary):not(.ghost):not(.accent),
-.panel .btn:not(.secondary):not(.ghost):not(.accent) {
+.panel .btn:not(.secondary):not(.ghost):not(.accent),
+.profile-card .btn:not(.secondary):not(.ghost):not(.accent) {
   background: var(--dark) !important;
   color: var(--dark-fg) !important;
   border-color: var(--dark) !important;
 }
 .auth .btn:not(.secondary):not(.ghost):not(.accent):hover:not(:disabled),
-.panel .btn:not(.secondary):not(.ghost):not(.accent):hover:not(:disabled) {
+.panel .btn:not(.secondary):not(.ghost):not(.accent):hover:not(:disabled),
+.profile-card .btn:not(.secondary):not(.ghost):not(.accent):hover:not(:disabled) {
   background: color-mix(in oklab, var(--dark) 85%, white) !important;
   border-color: color-mix(in oklab, var(--dark) 85%, white) !important;
 }
 .auth .btn.secondary,
-.panel .btn.secondary {
+.panel .btn.secondary,
+.profile-card .btn.secondary {
   background: transparent !important;
   color: var(--paper-fg) !important;
   border-color: color-mix(in oklab, var(--paper-fg) 25%, transparent) !important;
 }
 .auth .btn.secondary:hover:not(:disabled),
-.panel .btn.secondary:hover:not(:disabled) {
+.panel .btn.secondary:hover:not(:disabled),
+.profile-card .btn.secondary:hover:not(:disabled) {
   background: color-mix(in oklab, var(--paper-fg) 6%, transparent) !important;
   border-color: var(--paper-fg) !important;
 }
+.auth .btn.ghost,
+.panel .btn.ghost,
+.profile-card .btn.ghost {
+  background: transparent !important;
+  color: var(--paper-fg) !important;
+  opacity: 0.65 !important;
+}
+.auth .btn.ghost:hover:not(:disabled),
+.panel .btn.ghost:hover:not(:disabled),
+.profile-card .btn.ghost:hover:not(:disabled) {
+  opacity: 0.95 !important;
+  background: color-mix(in oklab, var(--paper-fg) 6%, transparent) !important;
+}
 .auth .btn:disabled,
-.panel .btn:disabled {
+.panel .btn:disabled,
+.profile-card .btn:disabled {
   background: color-mix(in oklab, var(--paper-fg) 10%, transparent) !important;
   color: color-mix(in oklab, var(--paper-fg) 35%, transparent) !important;
   border-color: transparent !important;
