@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
     let targetProductId = productId;
     if (isLocalhost && productId === 'prod_UiU1bLVVTs3WEp') {
-      targetProductId = 'prod_UiU76M9vEFVwP6';
+      targetProductId = 'prod_UiUOA82wjWJ8Zg';
     }
 
     // 1. Retrieve the product with default price expanded
