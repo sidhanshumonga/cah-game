@@ -24,9 +24,9 @@ export const GAME_DATA = {
     { id: "customCards", name: "Custom Cards Studio", desc: "Write your own prompts and answers for any room", price: 200 }
   ],
   creditBundles: [
-    { coins: 500, tag: "$4.99" },
-    { coins: 1200, tag: "$9.99", best: true },
-    { coins: 3000, tag: "$19.99" }
+    { coins: 500, tag: "$4.99", productId: "prod_UiU1bLVVTs3WEp" },
+    { coins: 1200, tag: "$9.99", best: true, productId: "prod_UiU1NqbXoVoF78" },
+    { coins: 3000, tag: "$19.99", productId: "prod_UiU2mxisRKNBys" }
   ]
 };
 
