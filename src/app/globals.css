@@ -709,6 +709,9 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   .create-grid { grid-template-columns: 1fr; }
   .topbar-mid { display: none; }
 }
+.topbar-btn-icon { display: none; }
+.topbar-score-compact { display: none; }
+
 @media (max-width: 700px) {
   .game-layout-container { padding: 0 12px 12px; gap: 12px; }
   .stage { gap: 12px; margin-top: 4px; }
@@ -744,8 +747,42 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   .pcard-text { font-size: 18px; }
   .timerbar { max-width: 80vw; }
   .reveal-prompt { width: 290px; }
-  .bgcard { width: 110px; font-size: 11px; }
+  .bgcard { display: none; }
   .podium-block { width: 90px; }
+
+  /* Topbar responsive rules */
+  .topbar { padding: 10px 12px; gap: 8px; }
+  .topbar-logo-wrap { display: none; }
+  .topbar-left { gap: 8px; }
+  .topbar-mid { display: flex !important; gap: 6px; }
+  .topbar-round { font-size: 13px; }
+  .topbar-judge { padding: 4px 6px; }
+  .topbar-judge-text { display: none; }
+  .topbar-btn-txt { display: none; }
+  .topbar-btn-icon { display: inline; }
+  .topbar-score-txt { display: none; }
+  .topbar-score-compact { display: inline; }
+  .topbar-right { gap: 6px; }
+  .topbar-right .chip { padding: 6px 10px; font-size: 13px; }
+
+  /* Account Chooser modal */
+  .google-chooser-modal { max-width: calc(100% - 24px); }
+
+  /* Lobby Page header */
+  .lobby-head { gap: 10px; justify-content: space-between; }
+  .lobby-leave { order: 2; }
+  .lobby-code { order: 3; width: 100%; justify-content: space-between; }
+  .lobby-head .chip { font-size: 12px; padding: 6px 12px; }
+
+  /* End Page podium text overflow */
+  .podium-name {
+    font-size: 13px;
+    max-width: 90px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+  }
 }
 
 /* ---------- Admin Section ---------- */

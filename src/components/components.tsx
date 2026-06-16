@@ -354,21 +354,22 @@ export function TopBar({ code, round, judge, you, limit, onScores, onChatToggle,
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <Logo />
+        <div className="topbar-logo-wrap"><Logo /></div>
         <span className="chip chip-code">{code}</span>
       </div>
       <div className="topbar-mid">
         {round ? <span className="topbar-round">Round {round}</span> : null}
         {judge ? (
           <span className="topbar-judge">
-            <Avatar player={judge} size={22} /> {judge.isYou ? "You are" : judge.name + " is"} judging
+            <Avatar player={judge} size={22} />
+            <span className="topbar-judge-text">{judge.isYou ? "You are" : judge.name + " is"} judging</span>
           </span>
         ) : null}
       </div>
       <div className="topbar-right">
         {onChatToggle && (
-          <button className="chip" onClick={onChatToggle} style={{ position: 'relative' }}>
-            💬 Chat
+          <button className="chip topbar-chat-btn" onClick={onChatToggle} style={{ position: 'relative' }}>
+            💬 <span className="topbar-btn-txt">Chat</span>
             {unreadCount ? (
               <span style={{ background: '#ff4d4f', color: '#fff', fontSize: '10px', padding: '1px 5px', borderRadius: '10px', fontWeight: 'bold', marginLeft: '4px' }}>
                 {unreadCount}
@@ -378,18 +379,21 @@ export function TopBar({ code, round, judge, you, limit, onScores, onChatToggle,
         )}
         <button className="chip chip-score" onClick={onScores}>
           <span className="chip-score-dot" style={{ background: you.color }}></span>
-          {you.score} / {limit} pts
+          <span className="topbar-score-txt">{you.score} / {limit} pts</span>
+          <span className="topbar-score-compact">{you.score}/{limit}</span>
         </button>
         {isHost ? (
           onEndGame && (
-            <button className="chip" onClick={onEndGame} style={{ background: '#ff4d4f', color: '#fff', border: '0', fontWeight: 'bold', cursor: 'pointer' }}>
-              🛑 End Game
+            <button className="chip topbar-action-btn topbar-end-btn" onClick={onEndGame} style={{ background: '#ff4d4f', color: '#fff', border: '0', fontWeight: 'bold', cursor: 'pointer' }}>
+              <span className="topbar-btn-txt">🛑 End Game</span>
+              <span className="topbar-btn-icon">🛑</span>
             </button>
           )
         ) : (
           onLeave && (
-            <button className="chip" onClick={onLeave} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '0', cursor: 'pointer' }}>
-              🚪 Leave
+            <button className="chip topbar-action-btn topbar-leave-btn" onClick={onLeave} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '0', cursor: 'pointer' }}>
+              <span className="topbar-btn-txt">🚪 Leave</span>
+              <span className="topbar-btn-icon">🚪</span>
             </button>
           )
         )}
