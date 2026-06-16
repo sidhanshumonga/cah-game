@@ -43,7 +43,7 @@ function makeDraw<T>(arr: T[]): () => T {
 // ─────────────────────────────────────────────────────────────────
 function MultiplayerGame({ code }: { code: string }) {
   const router = useRouter();
-  const { account, settings, handleEnd, isHydrated, getCardsForPacks } = useGameContext();
+  const { account, settings, setSettings, handleEnd, isHydrated, getCardsForPacks } = useGameContext();
 
   const myUid = account?.uid || account?.email || "guest";
   const myName = account?.name || "Player";
@@ -52,13 +52,22 @@ function MultiplayerGame({ code }: { code: string }) {
   const [gameState, setGameState] = useState<any>(null);
   const phase = gameState?.phase || "pick";
   const [roomPlayers, setRoomPlayers] = useState<any[]>([]);
+  const [roomLoaded, setRoomLoaded] = useState(false);
 
   // Local per-player private hand (not in Firestore)
   const cardPools = useMemo(() => getCardsForPacks(settings.packs, settings.family), [settings.packs, settings.family, getCardsForPacks]);
   const drawA = useRef<() => string>(null!);
-  if (!drawA.current && cardPools) drawA.current = makeDraw(cardPools.answers);
   const drawP = useRef<() => string>(null!);
-  if (!drawP.current && cardPools) drawP.current = makeDraw(cardPools.prompts);
+
+  const packsKey = settings.packs.join(",");
+  const packsLoadedKey = cardPools.answers.length;
+
+  useEffect(() => {
+    if (cardPools && cardPools.answers.length > 0) {
+      drawA.current = makeDraw(cardPools.answers);
+      drawP.current = makeDraw(cardPools.prompts);
+    }
+  }, [packsKey, packsLoadedKey, cardPools]);
 
   const [hand, setHand] = useState<string[]>([]);
   const [myPick, setMyPick] = useState<string | null>(null);
@@ -99,9 +108,14 @@ function MultiplayerGame({ code }: { code: string }) {
       subs.push(subscribeRoom(code, (roomData) => {
         if (!roomData) {
           setRoomExists(false);
+          setRoomLoaded(true);
           return;
         }
         setRoomExists(true);
+        if (roomData.settings) {
+          setSettings(roomData.settings);
+        }
+        setRoomLoaded(true);
         if (roomData.status === 'lobby') {
           router.replace(`/lobby/${code}`);
         } else if (roomData.status === 'ended') {
@@ -423,7 +437,7 @@ function MultiplayerGame({ code }: { code: string }) {
     );
   }
 
-  if (!isHydrated || !gameState || players.length === 0) {
+  if (!isHydrated || !roomLoaded || !gameState || players.length === 0) {
     return (
       <div className="screen center-screen">
         <div className="waiting-text">Entering room<span className="dots"><i>.</i><i>.</i><i>.</i></span></div>
@@ -687,9 +701,9 @@ function MultiplayerGame({ code }: { code: string }) {
 export default function GamePage() {
   const params = useParams();
   const code = (params?.code as string) || "GRUV";
-  const { isHydrated } = useGameContext();
+  const { isHydrated, isPacksLoaded } = useGameContext();
 
-  if (!isHydrated) {
+  if (!isHydrated || !isPacksLoaded) {
     return (
       <div className="screen center-screen">
         <div className="waiting-text">Connecting<span className="dots"><i>.</i><i>.</i><i>.</i></span></div>

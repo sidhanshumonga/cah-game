@@ -30,7 +30,7 @@ export default function LobbyPage() {
   const params = useParams();
   const code = (params?.code as string) || "ABCD";
 
-  const { mode, settings, setSettings, setAccount, startGame, isHydrated, account, getCardsForPacks, packs } = useGameContext();
+  const { mode, settings, setSettings, setAccount, startGame, isHydrated, isPacksLoaded, account, getCardsForPacks, packs } = useGameContext();
 
   // ── Guest Join state ──────────────────────────────────────────────────────
   const [guestName, setGuestName] = useState("");
@@ -289,7 +289,7 @@ export default function LobbyPage() {
   const canStart = roomPlayers.length >= 2;
   const slots = Math.min(settings.maxPlayers, 8);
 
-  if (!isHydrated || !roomLoaded) {
+  if (!isHydrated || !isPacksLoaded || !roomLoaded) {
     return (
       <div className="screen center-screen">
         <div className="waiting-text">Loading lobby...</div>

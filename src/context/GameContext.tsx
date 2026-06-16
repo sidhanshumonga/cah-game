@@ -91,6 +91,7 @@ export interface GameContextType {
   demo: string | null;
   setDemo: React.Dispatch<React.SetStateAction<string | null>>;
   isHydrated: boolean;
+  isPacksLoaded: boolean;
   packs: Pack[];
   getCardsForPacks: (selectedPackIds: string[], family?: boolean) => { prompts: string[]; answers: string[] };
   spend: (cost: number, label: string, apply: (a: Account) => Account) => void;
@@ -145,12 +146,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [gameKey, setGameKey] = useState<number>(1);
   const [demo, setDemo] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  const [isPacksLoaded, setIsPacksLoaded] = useState<boolean>(false);
   const [firestorePacks, setFirestorePacks] = useState<Pack[]>([]);
   // Track the Firebase UID separately so we can write Firestore without stale closures
   const firebaseUidRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isFirebaseEnabled) return;
+    if (!isFirebaseEnabled) {
+      setIsPacksLoaded(true);
+      return;
+    }
     let unsubscribe: () => void = () => {};
     
     async function loadFirestorePacks() {
@@ -167,6 +172,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           familyFriendly: p.familyFriendly === undefined ? true : !!p.familyFriendly
         }));
         setFirestorePacks(mapped);
+        setIsPacksLoaded(true);
       });
     }
     
@@ -428,6 +434,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       gameKey, setGameKey,
       demo, setDemo,
       isHydrated,
+      isPacksLoaded,
       packs,
       getCardsForPacks,
       spend, buyPack, buyUpgrade, buyCredits, handleLogin,

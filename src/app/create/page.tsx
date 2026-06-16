@@ -44,7 +44,7 @@ function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 
 export default function CreateRoomPage() {
   const router = useRouter();
-  const { account, setAccount, settings, setSettings, setMode, setGameKey, isHydrated, packs: allPacks } = useGameContext();
+  const { account, setAccount, settings, setSettings, setMode, setGameKey, isHydrated, isPacksLoaded, packs: allPacks } = useGameContext();
 
   const allowed = maxPlayersFor(account);
   const hasCustom = !!(account && account.upgrades.includes("customCards"));
@@ -159,7 +159,7 @@ export default function CreateRoomPage() {
     p.name.toLowerCase().includes(packQuery.trim().toLowerCase())
   );
 
-  if (!isHydrated) {
+  if (!isHydrated || !isPacksLoaded) {
     return (
       <div className="screen center-screen">
         <div className="waiting-text">Loading room...</div>

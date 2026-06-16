@@ -13,7 +13,7 @@ const STORE_SECTIONS = [
 
 export default function StorePage() {
   const router = useRouter();
-  const { account, buyPack, buyUpgrade, isHydrated, packs } = useGameContext();
+  const { account, buyPack, buyUpgrade, isHydrated, isPacksLoaded, packs } = useGameContext();
   const [activeSection, setActiveSection] = useState("packs");
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
@@ -63,7 +63,7 @@ export default function StorePage() {
     upgrades: (account ? account.upgrades.length : 0) + " / " + GAME_DATA.upgrades.length
   };
 
-  if (!isHydrated) {
+  if (!isHydrated || !isPacksLoaded) {
     return (
       <div className="screen center-screen">
         <div className="waiting-text">Loading store...</div>

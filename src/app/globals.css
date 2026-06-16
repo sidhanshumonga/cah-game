@@ -10,13 +10,13 @@
   --font-b: var(--font-schibsted), sans-serif;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html, body { margin: 0; padding: 0; overflow-x: hidden; }
 body { background: var(--bg); font-family: var(--font-b); }
 button { font-family: inherit; cursor: pointer; }
 input { font-family: inherit; }
 
 .cah-app { min-height: 100vh; color: var(--fg); }
-.screen { min-height: 100vh; animation: fadeUp calc(var(--m) * 0.45s) cubic-bezier(.2,.8,.3,1) both; }
+.screen { min-height: 100vh; position: relative; overflow-x: hidden; animation: fadeUp calc(var(--m) * 0.45s) cubic-bezier(.2,.8,.3,1) both; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } }
 .muted { opacity: 0.55; font-weight: 400; }
 
