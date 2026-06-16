@@ -38,12 +38,99 @@ function makeDraw<T>(arr: T[]): () => T {
   };
 }
 
+function seededRandom(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  }
+  return function() {
+    h = Math.imul(1664525, h) + 1013904223 | 0;
+    return (h >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  const rand = seededRandom(seed);
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const temp = copy[i];
+    copy[i] = copy[j];
+    copy[j] = temp;
+  }
+  return copy;
+}
+
+function buildSeededDeck(
+  selectedPackIds: string[],
+  packs: any[],
+  family: boolean,
+  seed: string
+) {
+  const activePacks = packs.filter(p => selectedPackIds.includes(p.id) && !(family && p.familyFriendly === false));
+  
+  // Seeded shuffle each pack's prompts/answers separately
+  const promptsByPack = activePacks.map(p => seededShuffle<string>(p.prompts || [], `${seed}-prompts-${p.id}`));
+  const answersByPack = activePacks.map(p => seededShuffle<string>(p.answers || [], `${seed}-answers-${p.id}`));
+
+  const promptsPool: string[] = [];
+  const answersPool: string[] = [];
+
+  let hasMorePrompts = true;
+  let promptPointers = promptsByPack.map(() => 0);
+  while (hasMorePrompts) {
+    hasMorePrompts = false;
+    for (let i = 0; i < promptsByPack.length; i++) {
+      if (promptPointers[i] < promptsByPack[i].length) {
+        promptsPool.push(promptsByPack[i][promptPointers[i]]);
+        promptPointers[i]++;
+        hasMorePrompts = true;
+      }
+    }
+  }
+
+  let hasMoreAnswers = true;
+  let answerPointers = answersByPack.map(() => 0);
+  while (hasMoreAnswers) {
+    hasMoreAnswers = false;
+    for (let i = 0; i < answersByPack.length; i++) {
+      if (answerPointers[i] < answersByPack[i].length) {
+        answersPool.push(answersByPack[i][answerPointers[i]]);
+        answerPointers[i]++;
+        hasMoreAnswers = true;
+      }
+    }
+  }
+
+  if (promptsPool.length === 0) promptsPool.push("Draw a card.");
+  if (answersPool.length === 0) answersPool.push("A card.");
+
+  return { prompts: promptsPool, answers: answersPool };
+}
+
+function makeDrawSeeded<T>(arr: T[], seed: string, playerIndex: number, totalSlots: number = 31): () => T {
+  const playerPool = arr.filter((_, idx) => idx % totalSlots === playerIndex);
+  
+  let pool = [...playerPool];
+  let cycle = 1;
+  
+  return () => {
+    if (!pool.length) {
+      cycle++;
+      const nextShuffled = seededShuffle(arr, `${seed}-cycle-${cycle}`);
+      const nextPool = nextShuffled.filter((_, idx) => idx % totalSlots === playerIndex);
+      pool = [...nextPool];
+    }
+    return pool.pop() || arr[0];
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────
 // MULTIPLAYER GAME (Firestore-driven)
 // ─────────────────────────────────────────────────────────────────
 function MultiplayerGame({ code }: { code: string }) {
   const router = useRouter();
-  const { account, settings, setSettings, handleEnd, isHydrated, getCardsForPacks } = useGameContext();
+  const { account, settings, setSettings, handleEnd, isHydrated, getCardsForPacks, packs } = useGameContext();
 
   const myUid = account?.uid || account?.email || "guest";
   const myName = account?.name || "Player";
@@ -55,19 +142,24 @@ function MultiplayerGame({ code }: { code: string }) {
   const [roomLoaded, setRoomLoaded] = useState(false);
 
   // Local per-player private hand (not in Firestore)
-  const cardPools = useMemo(() => getCardsForPacks(settings.packs, settings.family), [settings.packs, settings.family, getCardsForPacks]);
   const drawA = useRef<() => string>(null!);
   const drawP = useRef<() => string>(null!);
 
+  const playerIndex = useMemo(() => {
+    if (!roomPlayers.length) return -1;
+    const sorted = [...roomPlayers].sort((a, b) => a.uid.localeCompare(b.uid));
+    return sorted.findIndex(p => p.uid === myUid);
+  }, [roomPlayers, myUid]);
+
   const packsKey = settings.packs.join(",");
-  const packsLoadedKey = cardPools.answers.length;
 
   useEffect(() => {
-    if (cardPools && cardPools.answers.length > 0) {
-      drawA.current = makeDraw(cardPools.answers);
-      drawP.current = makeDraw(cardPools.prompts);
+    if (packs && packs.length > 0 && playerIndex !== -1) {
+      const deck = buildSeededDeck(settings.packs, packs, settings.family, code);
+      drawA.current = makeDrawSeeded(deck.answers, code, playerIndex, 31);
+      drawP.current = makeDrawSeeded(deck.prompts, code, playerIndex, 31);
     }
-  }, [packsKey, packsLoadedKey, cardPools]);
+  }, [packsKey, packs, playerIndex, code, settings.packs, settings.family]);
 
   const [hand, setHand] = useState<string[]>([]);
   const [myPick, setMyPick] = useState<string | null>(null);
