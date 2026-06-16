@@ -188,36 +188,62 @@ export function isUserIndian(): boolean {
 }
 
 export function sortPacks(packs: Pack[], account: Account | null, isIndianUser: boolean): Pack[] {
-  const indexedPacks = packs.map((pack, index) => ({ pack, index }));
-  indexedPacks.sort((x, y) => {
-    const a = x.pack;
-    const b = y.pack;
-
+  return [...packs].sort((a, b) => {
     // 1. Classic pack always first
     const aIsClassic = a.id === 'classic';
     const bIsClassic = b.id === 'classic';
     if (aIsClassic && !bIsClassic) return -1;
     if (!aIsClassic && bIsClassic) return 1;
+    if (aIsClassic && bIsClassic) return 0;
 
-    // 2. Owned state
+    // Determine ownership
     const aOwned = ownsPack(account, a);
     const bOwned = ownsPack(account, b);
-    if (aOwned && !bOwned) return -1;
-    if (!aOwned && bOwned) return 1;
 
-    // 3. Location/Context priority (Indian packs for Indian users)
-    if (isIndianUser) {
-      const aIsIndian = isIndianPack(a);
-      const bIsIndian = isIndianPack(b);
-      if (aIsIndian && !bIsIndian) return -1;
-      if (!aIsIndian && bIsIndian) return 1;
+    // Grouping
+    // Group 1: Owned Indian packs (only for Indian users)
+    // Group 2: Other owned packs
+    // Group 3: Unowned Indian packs (only for Indian users)
+    // Group 4: Other unowned packs
+    let aGroup = 0;
+    if (aOwned) {
+      if (isIndianUser && isIndianPack(a)) {
+        aGroup = 1;
+      } else {
+        aGroup = 2;
+      }
+    } else {
+      if (isIndianUser && isIndianPack(a)) {
+        aGroup = 3;
+      } else {
+        aGroup = 4;
+      }
     }
 
-    // Stable sort: keep original order
-    return x.index - y.index;
+    let bGroup = 0;
+    if (bOwned) {
+      if (isIndianUser && isIndianPack(b)) {
+        bGroup = 1;
+      } else {
+        bGroup = 2;
+      }
+    } else {
+      if (isIndianUser && isIndianPack(b)) {
+        bGroup = 3;
+      } else {
+        bGroup = 4;
+      }
+    }
+
+    if (aGroup !== bGroup) {
+      return aGroup - bGroup;
+    }
+
+    // Within the same group, sort alphabetically by name (case-insensitive)
+    return a.name.localeCompare(b.name);
   });
-  return indexedPacks.map(item => item.pack);
 }
+
 
 const GameContext = createContext<GameContextType | null>(null);
 
