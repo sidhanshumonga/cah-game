@@ -6,7 +6,6 @@ import { useGameContext, Player, HistoryEntry } from '@/context/GameContext';
 import {
   TopBar,
   ScorePanel,
-  SideScores,
   PromptCard,
   Avatar,
   AnswerCard,
@@ -454,17 +453,8 @@ function MultiplayerGame({ code }: { code: string }) {
       <ScorePanel open={scoresOpen} onClose={() => setScoresOpen(false)} players={players} limit={settings.scoreLimit} />
       
       <div className="game-layout-container">
-        {/* Left SideScores sidebar (Desktop only) */}
-        <aside className="game-sidebar-left">
-          <SideScores players={players} judgeId={judge.id} limit={settings.scoreLimit} />
-        </aside>
-
         {/* Center content column */}
         <div className="game-center-content">
-          {/* Mobile/Tablet scores row */}
-          <div className="game-mobile-scores">
-            <SideScores players={players} judgeId={judge.id} limit={settings.scoreLimit} />
-          </div>
 
           {/* PICK — not judge */}
           {phase === "pick" && !youAreJudge ? (
