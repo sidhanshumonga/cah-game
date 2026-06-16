@@ -8,10 +8,30 @@ import { Player } from '@/context/GameContext';
 export const CONFETTI_COLORS = ["#FF5C39", "#FFC93C", "#7C5CFF", "#2BC4BE", "#FF4D8D", "#5CA9FF"];
 
 /* ---------- Logo ---------- */
-export function Logo({ big }: { big?: boolean }) {
-  return (
-    <Link href="/" className={"logo" + (big ? " logo-big" : "")} style={{ textDecoration: 'none', color: 'inherit' }}>
+interface LogoProps {
+  big?: boolean;
+  disabled?: boolean;
+}
+
+export function Logo({ big, disabled }: LogoProps) {
+  const inner = (
+    <React.Fragment>
       cards against{big ? <br /> : " "}<span className="logo-card">humanity</span>
+    </React.Fragment>
+  );
+  const cls = "logo" + (big ? " logo-big" : "");
+  const style = { textDecoration: 'none', color: 'inherit' };
+  
+  if (disabled) {
+    return (
+      <span className={cls} style={{ ...style, cursor: 'default' }}>
+        {inner}
+      </span>
+    );
+  }
+  return (
+    <Link href="/" className={cls} style={style}>
+      {inner}
     </Link>
   );
 }
@@ -354,7 +374,7 @@ export function TopBar({ code, round, judge, you, limit, onScores, onChatToggle,
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <div className="topbar-logo-wrap"><Logo /></div>
+        <div className="topbar-logo-wrap"><Logo disabled={true} /></div>
         <span className="chip chip-code">{code}</span>
       </div>
       <div className="topbar-mid">
