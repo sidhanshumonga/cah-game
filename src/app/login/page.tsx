@@ -12,6 +12,22 @@ function LoginContent() {
   const redirectTo = searchParams?.get('redirectTo') || '/';
   const { account, handleLogin, logout, isHydrated } = useGameContext();
 
+  // Handle redirect result after Google sign-in redirect completes
+  useEffect(() => {
+    if (!isFirebaseEnabled || !auth) return;
+    import('firebase/auth').then(({ getRedirectResult }) => {
+      getRedirectResult(auth).then((result) => {
+        if (result?.user) {
+          // onAuthStateChanged in GameContext handles account mapping
+          router.replace(redirectTo);
+        }
+      }).catch((error: any) => {
+        console.error('Redirect result error:', error);
+        setErrorMsg(error.message || 'Sign in failed. Please try again.');
+      });
+    });
+  }, []);
+
   // Auto-redirect to redirect target if already signed in
   useEffect(() => {
     if (isHydrated && account) {
@@ -31,16 +47,13 @@ function LoginContent() {
     if (isFirebaseEnabled && auth && googleProvider) {
       setIsLoading(true);
       try {
-        const { signInWithPopup } = await import('firebase/auth');
-        const result = await signInWithPopup(auth, googleProvider);
-        if (result.user) {
-          // Firebase onAuthStateChanged handles account mapping globally
-          router.push(redirectTo);
-        }
+        const { signInWithRedirect } = await import('firebase/auth');
+        // signInWithRedirect navigates the entire page to Google — no popup, no COOP issues
+        await signInWithRedirect(auth, googleProvider);
+        // Page will navigate away; result is handled by getRedirectResult on mount above
       } catch (error: any) {
         console.error("Google sign in failed:", error);
         setErrorMsg(error.message || "Google sign in failed. Please try again.");
-      } finally {
         setIsLoading(false);
       }
     } else {
