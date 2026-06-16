@@ -13,18 +13,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
-    // 1. Retrieve the product to get its configured default price
-    const product = await stripe.products.retrieve(productId);
-    const priceId = typeof product.default_price === 'string'
-      ? product.default_price
-      : product.default_price?.id;
+    const origin = req.headers.get('origin') || 'http://localhost:3000';
+    const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+    let targetProductId = productId;
+    if (isLocalhost && productId === 'prod_UiU1bLVVTs3WEp') {
+      targetProductId = 'prod_UiU76M9vEFVwP6';
+    }
 
-    if (!priceId) {
+    // 1. Retrieve the product with default price expanded
+    const product = await stripe.products.retrieve(targetProductId, {
+      expand: ['default_price'],
+    });
+    const defaultPrice = product.default_price as Stripe.Price;
+
+    if (!defaultPrice) {
       return NextResponse.json({ error: 'Stripe product has no default price configured' }, { status: 400 });
     }
 
+    const priceId = defaultPrice.id;
+    const mode = (defaultPrice.type === 'recurring' || !!defaultPrice.recurring) ? 'subscription' : 'payment';
+
     // 2. Create the Checkout Session
-    const origin = req.headers.get('origin') || 'http://localhost:3000';
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -33,7 +42,7 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      mode: 'payment',
+      mode: mode as Stripe.Checkout.SessionCreateParams.Mode,
       customer_email: email || undefined,
       metadata: {
         uid,
