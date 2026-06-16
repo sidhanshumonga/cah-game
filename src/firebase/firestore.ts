@@ -39,7 +39,7 @@ export async function getUserProfile(uid: string): Promise<any | null> {
 export async function setUserProfile(uid: string, data: any): Promise<void> {
   if (!db) return;
   try {
-    await setDoc(doc(db, 'users', uid), { ...data, updatedAt: serverTimestamp() }, { merge: false });
+    await setDoc(doc(db, 'users', uid), { ...data, updatedAt: serverTimestamp() }, { merge: true });
   } catch (e) {
     console.error('setUserProfile failed', e);
   }
