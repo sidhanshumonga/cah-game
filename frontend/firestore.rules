@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read/write their own profile
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Packages: anyone can read; only the admin can write
+    match /packages/{packId} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.token.email == 'sidhanshumonga28@gmail.com';
+    }
+
+    // Rooms: anyone can read and write to support guest sessions
+    match /rooms/{code} {
+      allow read, write: if true;
+
+      match /players/{uid} {
+        allow read, write: if true;
+      }
+
+      match /chat/{msgId} {
+        allow read, write: if true;
+      }
+
+      match /reactions/{reactionId} {
+        allow read, write: if true;
+      }
+
+      match /gameState/{doc} {
+        allow read, write: if true;
+      }
+    }
+  }
+}

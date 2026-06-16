@@ -1,0 +1,773 @@
+"use client";
+
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useGameContext, Player, HistoryEntry } from '@/context/GameContext';
+import {
+  TopBar,
+  ScorePanel,
+  SideScores,
+  PromptCard,
+  Avatar,
+  AnswerCard,
+  FlipCard,
+  TimerBar,
+  Btn,
+  ConfettiBurst,
+  ReactionBar,
+  ReactionLayer,
+  CrownIcon,
+  spawnReaction
+} from '@/components/components';
+import { GAME_DATA } from '@/data/game-data';
+import { isFirebaseEnabled } from '@/firebase/config';
+
+function shuffleArr<T>(a: T[]): T[] {
+  const x = [...a];
+  for (let i = x.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = x[i]; x[i] = x[j]; x[j] = tmp;
+  }
+  return x;
+}
+
+function makeDraw<T>(arr: T[]): () => T {
+  let pool = shuffleArr(arr);
+  return () => {
+    if (!pool.length) pool = shuffleArr(arr);
+    return pool.pop()!;
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MULTIPLAYER GAME (Firestore-driven)
+// ─────────────────────────────────────────────────────────────────
+function MultiplayerGame({ code }: { code: string }) {
+  const router = useRouter();
+  const { account, settings, handleEnd, isHydrated, getCardsForPacks } = useGameContext();
+
+  const myUid = account?.uid || account?.email || "guest";
+  const myName = account?.name || "Player";
+
+  // Firestore game state
+  const [gameState, setGameState] = useState<any>(null);
+  const phase = gameState?.phase || "pick";
+  const [roomPlayers, setRoomPlayers] = useState<any[]>([]);
+
+  // Local per-player private hand (not in Firestore)
+  const cardPools = useMemo(() => getCardsForPacks(settings.packs, settings.family), [settings.packs, settings.family, getCardsForPacks]);
+  const drawA = useRef<() => string>(null!);
+  if (!drawA.current && cardPools) drawA.current = makeDraw(cardPools.answers);
+  const drawP = useRef<() => string>(null!);
+  if (!drawP.current && cardPools) drawP.current = makeDraw(cardPools.prompts);
+
+  const [hand, setHand] = useState<string[]>([]);
+  const [myPick, setMyPick] = useState<string | null>(null);
+  const [mySubmitted, setMySubmitted] = useState(false);
+  const [scoresOpen, setScoresOpen] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [swapMode, setSwapMode] = useState(false);
+  const [swapPicks, setSwapPicks] = useState<number[]>([]);
+  const [swapsUsed, setSwapsUsed] = useState(0);
+  const lastRoundRef = useRef<number>(0);
+
+  const hasSwapPlus = !!(account && account.upgrades.includes("swapPlus"));
+  const maxSwap = hasSwapPlus ? 5 : 3;
+  const every = hasSwapPlus ? 2 : 3;
+
+  // Chat states
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatDraft, setChatDraft] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [roomEndStatus, setRoomEndStatus] = useState<'none' | 'ended' | 'completed'>('none');
+  const [roomExists, setRoomExists] = useState<boolean | null>(null);
+  const playersRef = useRef<Player[]>([]);
+  const hasTransitionedRef = useRef(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const lastMsgCountRef = useRef(0);
+
+  // Subscribe to room + game state + room players + chat + reactions
+  useEffect(() => {
+    if (!isHydrated) return;
+    const subs: (() => void)[] = [];
+
+    async function subscribe() {
+      const { subscribeGameState, subscribeRoomPlayers, subscribeRoomChat, subscribeReactions, subscribeRoom } = await import('@/firebase/firestore');
+
+      subs.push(subscribeRoom(code, (roomData) => {
+        if (!roomData) {
+          setRoomExists(false);
+          return;
+        }
+        setRoomExists(true);
+        if (roomData.status === 'lobby') {
+          router.replace(`/lobby/${code}`);
+        } else if (roomData.status === 'ended') {
+          setRoomEndStatus('ended');
+        } else if (roomData.status === 'completed') {
+          if (!hasTransitionedRef.current) {
+            if (playersRef.current && playersRef.current.length >= 2) {
+              hasTransitionedRef.current = true;
+              handleEnd(playersRef.current, [], code);
+            } else {
+              setRoomEndStatus('completed');
+            }
+          }
+        }
+      }));
+
+      subs.push(subscribeGameState(code, (state) => {
+        setGameState(state);
+      }));
+
+      subs.push(subscribeRoomPlayers(code, (players) => {
+        setRoomPlayers(players);
+      }));
+
+      subs.push(subscribeRoomChat(code, (messages) => {
+        setChatMessages(messages.map((m: any) => ({
+          id: m.id,
+          uid: m.uid,
+          name: m.name,
+          color: m.color,
+          text: m.text,
+        })));
+      }));
+
+      subs.push(subscribeReactions(code, (react) => {
+        spawnReaction(react.emoji, undefined, react.name);
+      }));
+    }
+
+    subscribe();
+    return () => subs.forEach(u => u());
+  }, [code, isHydrated, router]);
+
+  // Sync unread messages count
+  useEffect(() => {
+    if (chatOpen) {
+      setUnreadCount(0);
+      lastMsgCountRef.current = chatMessages.length;
+    } else {
+      const diff = chatMessages.length - lastMsgCountRef.current;
+      setUnreadCount(diff > 0 ? diff : 0);
+    }
+  }, [chatMessages, chatOpen]);
+
+  // Auto scroll chat
+  useEffect(() => {
+    if (chatOpen) {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, chatOpen]);
+
+  const sendGameChat = async () => {
+    if (!chatDraft.trim() || !account) return;
+    const { sendChatMessage } = await import('@/firebase/firestore');
+    await sendChatMessage(code, account.uid || account.email, account.name, account.color, chatDraft.trim());
+    setChatDraft("");
+  };
+
+  const handleSendReaction = useCallback(async (emoji: string) => {
+    const { sendReaction } = await import('@/firebase/firestore');
+    await sendReaction(code, emoji, myName);
+  }, [code, myName]);
+
+  // Deal hand at start of each new round
+  useEffect(() => {
+    if (!gameState) return;
+    const round = gameState.round || 1;
+    if (round !== lastRoundRef.current) {
+      lastRoundRef.current = round;
+      setHand(Array.from({ length: 7 }, () => drawA.current?.() || ""));
+      setMyPick(null);
+      setMySubmitted(false);
+      setFlipped(false);
+      setSwapMode(false);
+      setSwapPicks([]);
+    }
+  }, [gameState?.round]);
+
+  // Flip cards after judging phase begins
+  useEffect(() => {
+    if (gameState?.phase !== 'judging') return;
+    const t = setTimeout(() => setFlipped(true), 120);
+    return () => clearTimeout(t);
+  }, [gameState?.phase]);
+
+
+
+  const judgeUid = gameState?.judgeUid;
+  const youAreJudge = judgeUid === myUid;
+  const isHost = useMemo(() => roomPlayers.find(p => p.uid === myUid)?.isHost || false, [roomPlayers, myUid]);
+  const subs = gameState?.submissions || [];
+  const nonJudgePlayers = roomPlayers.filter(p => p.uid !== judgeUid);
+  const needed = nonJudgePlayers.length;
+
+  const handleSubmitCard = useCallback(async (text: string) => {
+    if (!text) return;
+    setMySubmitted(true);
+    setMyPick(text);
+    setSwapMode(false);
+    setSwapPicks([]);
+    const { submitCard } = await import('@/firebase/firestore');
+    await submitCard(code, myUid, myName, text);
+  }, [code, myUid, myName]);
+
+  // Timer countdown
+  const [timeLeft, setTimeLeft] = useState(settings.timer);
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.phase === 'pick' || gameState.phase === 'judging') {
+      setTimeLeft(settings.timer);
+    }
+  }, [gameState?.round, gameState?.phase, settings.timer]);
+
+  useEffect(() => {
+    if (!gameState) return;
+
+    if (gameState.phase === 'pick') {
+      if (youAreJudge || mySubmitted) return;
+      if (timeLeft <= 0) {
+        const card = myPick || hand[Math.floor(Math.random() * hand.length)];
+        if (card) handleSubmitCard(card);
+        return;
+      }
+    } else if (gameState.phase === 'judging') {
+      if (timeLeft <= 0) {
+        if (isHost) {
+          import('@/firebase/firestore').then(({ updateGameState }) => {
+            updateGameState(code, {
+              phase: 'reveal',
+              winnerUid: 'none',
+            }).catch(() => {});
+          });
+        }
+        return;
+      }
+    } else {
+      return;
+    }
+
+    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [gameState?.phase, timeLeft, youAreJudge, mySubmitted, isHost, myPick, hand, code, handleSubmitCard]);
+
+  useEffect(() => {
+    if (!isHost || gameState?.phase !== 'pick' || subs.length < needed || needed === 0) return;
+    const t = setTimeout(async () => {
+      const { updateGameState } = await import('@/firebase/firestore');
+      await updateGameState(code, {
+        phase: 'judging',
+        submissions: shuffleArr(subs),
+      });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [isHost, subs.length, needed, gameState?.phase, code]);
+
+  // Derive player list with scores from gameState
+  const players: Player[] = useMemo(() => {
+    return roomPlayers.map(p => ({
+      id: p.uid,
+      name: p.name,
+      color: p.color,
+      score: gameState?.scores?.[p.uid] || 0,
+      isYou: p.uid === myUid,
+      isBot: !!p.isBot,
+      isConnected: p.isConnected !== false, // Default to true
+      left: !!p.left,
+    }));
+  }, [roomPlayers, myUid, gameState?.scores]);
+
+  // Keep playersRef updated
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+
+  const judge = players.find(p => p.id === judgeUid) || { id: '', name: '', color: '', score: 0 };
+  const you = players.find(p => p.isYou) || { id: '', name: '', color: '', score: 0 };
+  const winner = players.find(p => p.id === gameState?.winnerUid);
+  const winnerSub = subs.find((s: any) => s.uid === gameState?.winnerUid);
+  const submittedUids = subs.map((s: any) => s.uid);
+  const mid = (hand.length - 1) / 2;
+
+  // ── Connection state tracking (multiplayer game) ─────────────────────────
+  useEffect(() => {
+    import('@/firebase/firestore').then(({ updatePlayerConnection }) => {
+      updatePlayerConnection(code, myUid, true).catch(() => {});
+    });
+
+    const handleDisconnect = () => {
+      import('@/firebase/firestore').then(({ updatePlayerConnection }) => {
+        updatePlayerConnection(code, myUid, false).catch(() => {});
+      });
+    };
+
+    window.addEventListener('beforeunload', handleDisconnect);
+    window.addEventListener('pagehide', handleDisconnect);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleDisconnect);
+      window.removeEventListener('pagehide', handleDisconnect);
+      handleDisconnect();
+    };
+  }, [code, myUid]);
+
+
+
+  const maxScore = players.length > 0 ? Math.max(...players.map(p => p.score)) : 0;
+  const gameOver = maxScore >= settings.scoreLimit;
+
+
+  const handleCrown = useCallback(async (pickedUid: string) => {
+    if (judgeUid !== myUid) return;
+    const { updateGameState } = await import('@/firebase/firestore');
+    const newScores = { ...(gameState?.scores || {}) };
+    newScores[pickedUid] = (newScores[pickedUid] || 0) + 1;
+
+    await updateGameState(code, {
+      phase: 'reveal',
+      winnerUid: pickedUid,
+      scores: newScores,
+    });
+  }, [judgeUid, myUid, gameState?.scores, code]);
+
+  const handleNext = useCallback(async () => {
+    if (gameOver) {
+      hasTransitionedRef.current = true;
+      // Navigate to end screen
+      const histEntries: HistoryEntry[] = [];
+      handleEnd(players, histEntries, code);
+      const { updateRoom } = await import('@/firebase/firestore');
+      await updateRoom(code, { status: 'completed' });
+    } else if (isHost && gameState) {
+      const { updateGameState } = await import('@/firebase/firestore');
+      const activeUids = roomPlayers.map((p: any) => p.uid);
+      const judgeOrder: string[] = (gameState.judgeOrder || activeUids).filter((uid: string) => activeUids.includes(uid));
+      if (judgeOrder.length === 0) return;
+      const nextRound = (gameState.round || 1) + 1;
+      const nextJudgeIdx = (nextRound - 1) % judgeOrder.length;
+      const nextJudgeUid = judgeOrder[nextJudgeIdx];
+      const prompt = drawP.current?.() || "Cards Against Humanity round!";
+      await updateGameState(code, {
+        round: nextRound,
+        prompt,
+        phase: 'pick',
+        judgeUid: nextJudgeUid,
+        judgeOrder,
+        submissions: [],
+        winnerUid: null,
+      });
+    }
+  }, [gameOver, isHost, gameState, roomPlayers, code, players, handleEnd]);
+
+  function toggleSwapPick(i: number) {
+    setSwapPicks((s) => (s.includes(i) ? s.filter((x) => x !== i) : s.length < maxSwap ? [...s, i] : s));
+  }
+
+  function doSwap() {
+    if (!swapPicks.length) return;
+    setHand((h) => h.map((c, i) => (swapPicks.includes(i) ? drawA.current?.() || "" : c)));
+    setSwapsUsed((u) => u + 1);
+    setSwapMode(false);
+    setSwapPicks([]);
+  }
+
+  const swapCredits = Math.floor(((gameState?.round || 1) - 1) / every) - swapsUsed;
+  const canSwap = swapCredits > 0;
+  const nextSwapRound = every * (swapsUsed + 1) + 1;
+
+  const handleLeaveGame = useCallback(async () => {
+    const { leaveRoom } = await import('@/firebase/firestore');
+    await leaveRoom(code, myUid, true); // softLeave = true
+    router.replace('/');
+  }, [code, myUid, router]);
+
+  const handleEndGame = useCallback(async () => {
+    if (!isHost) return;
+    const { updateRoom } = await import('@/firebase/firestore');
+    await updateRoom(code, { status: 'ended' });
+    router.replace('/');
+  }, [code, isHost, router]);
+
+  if (roomExists === false) {
+    return (
+      <div className="screen center-screen" data-screen-label="Game Not Found Screen">
+        <div className="panel" style={{ maxWidth: '440px', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 10px', color: '#ff4d4f' }}>Game Not Found</h2>
+          <p className="muted" style={{ margin: '0 0 24px', fontSize: '15px', lineHeight: 1.4 }}>This game session or room does not exist.</p>
+          <Btn big={true} onClick={() => router.push('/')}>Back to Homepage</Btn>
+        </div>
+      </div>
+    );
+  }
+
+  if (roomEndStatus !== 'none') {
+    const isCompleted = roomEndStatus === 'completed';
+    return (
+      <div className="screen center-screen" data-screen-label="Game Ended Screen">
+        <div className="panel" style={{ maxWidth: '440px', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 10px', color: isCompleted ? '#2bc4be' : '#ff4d4f' }}>
+            {isCompleted ? "Game Completed" : "Game Ended"}
+          </h2>
+          <p className="muted" style={{ margin: '0 0 24px', fontSize: '15px', lineHeight: 1.4 }}>
+            {isCompleted 
+              ? "This game session has finished normally." 
+              : "The host has ended the game session or closed the room."}
+          </p>
+          <Btn big={true} onClick={() => router.push('/')}>Back to Homepage</Btn>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isHydrated || !gameState || players.length === 0) {
+    return (
+      <div className="screen center-screen">
+        <div className="waiting-text">Entering room<span className="dots"><i>.</i><i>.</i><i>.</i></span></div>
+      </div>
+    );
+  }
+
+  const roundNum = gameState.round || 1;
+  const prompt = gameState.prompt || "";
+
+  return (
+    <div className="screen game" data-screen-label={"Game — " + phase}>
+      <TopBar
+        code={code}
+        round={roundNum}
+        players={players}
+        judge={judge}
+        you={you}
+        limit={settings.scoreLimit}
+        onScores={() => setScoresOpen(true)}
+        onChatToggle={() => setChatOpen(!chatOpen)}
+        unreadCount={unreadCount}
+        isHost={isHost}
+        onLeave={() => setShowLeaveConfirm(true)}
+        onEndGame={() => setShowEndConfirm(true)}
+      />
+      <ScorePanel open={scoresOpen} onClose={() => setScoresOpen(false)} players={players} limit={settings.scoreLimit} />
+      
+      <div className="game-layout-container">
+        {/* Left SideScores sidebar (Desktop only) */}
+        <aside className="game-sidebar-left">
+          <SideScores players={players} judgeId={judge.id} limit={settings.scoreLimit} />
+        </aside>
+
+        {/* Center content column */}
+        <div className="game-center-content">
+          {/* Mobile/Tablet scores row */}
+          <div className="game-mobile-scores">
+            <SideScores players={players} judgeId={judge.id} limit={settings.scoreLimit} />
+          </div>
+
+          {/* PICK — not judge */}
+          {phase === "pick" && !youAreJudge ? (
+            <main className="game-main">
+              {!mySubmitted ? <TimerBar seconds={timeLeft} total={settings.timer} /> : null}
+              <div className="stage">
+                <PromptCard text={prompt} className="stage-prompt" />
+                <div className="status-row">
+                  {players.filter(p => p.id !== judge.id).map((p) => {
+                    const isDisconnected = p.isConnected === false;
+                    return (
+                      <div key={p.id} style={{ position: 'relative', opacity: isDisconnected ? 0.4 : 1 }} title={isDisconnected ? `${p.name} (Disconnected)` : undefined}>
+                        <Avatar player={p} size={34} done={!isDisconnected && submittedUids.includes(p.id)} dim={!isDisconnected && !submittedUids.includes(p.id)} />
+                        {isDisconnected && (
+                          <span style={{ position: 'absolute', bottom: -2, right: -2, background: '#ff4d4f', width: 8, height: 8, borderRadius: '50%', border: '2px solid #141414' }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {!mySubmitted ? (
+                <React.Fragment>
+                  <div className="hand-toolbar">
+                    <p className="hand-hint">
+                      {swapMode ? `Select up to ${maxSwap} cards to replace (${swapPicks.length} picked)` : myPick ? "Locked and loaded?" : "Pick your funniest card"}
+                    </p>
+                    {!swapMode ? (
+                      <button className={"swapbtn" + (canSwap ? "" : " swapbtn-off")} disabled={!canSwap} onClick={() => { setSwapMode(true); setMyPick(null); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v5h-5"></path></svg>
+                        {canSwap ? "Swap cards" + (swapCredits > 1 ? ` (${swapCredits})` : "") : roundNum <= every ? `Swaps unlock after round ${every}` : `Next swap in ${nextSwapRound - roundNum} round${nextSwapRound - roundNum > 1 ? "s" : ""}`}
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="hand">
+                    {hand.map((c, i) => (
+                      <div key={c + i} className="hand-slot" style={{ "--rot": (i - mid) * 4 + "deg", "--ty": Math.abs(i - mid) * 9 + "px", "--dl": i * 70 + "ms" } as React.CSSProperties}>
+                        <AnswerCard text={c} selected={!swapMode && myPick === c} className={swapMode && swapPicks.includes(i) ? "acard-swapsel" : ""} onClick={() => (swapMode ? toggleSwapPick(i) : setMyPick(myPick === c ? null : c))} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className={"confirm-bar" + (swapMode || myPick ? " confirm-show" : "")}>
+                    {swapMode ? (
+                      <div className="swap-actions">
+                        <Btn big={true} variant="accent" disabled={!swapPicks.length} onClick={doSwap}>Replace {swapPicks.length || ""} card{swapPicks.length === 1 ? "" : "s"}</Btn>
+                        <Btn big={true} variant="secondary" onClick={() => { setSwapMode(false); setSwapPicks([]); }}>Cancel</Btn>
+                      </div>
+                    ) : (
+                      <Btn big={true} variant="accent" onClick={() => handleSubmitCard(myPick!)}>Lock it in</Btn>
+                    )}
+                  </div>
+                </React.Fragment>
+              ) : (
+                <div className="waiting-area">
+                  <div className="pile">
+                    {subs.map((s: any, i: number) => (
+                      <div key={s.uid} className="pile-slot" style={{ "--r": ((i % 5) - 2) * 5 + "deg" } as React.CSSProperties}>
+                        <FlipCard text={s.text} flipped={false} />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="waiting-text">Card in. Waiting on {needed - subs.length} more<span className="dots"><i>.</i><i>.</i><i>.</i></span></p>
+                </div>
+              )}
+            </main>
+          ) : null}
+
+          {/* PICK — you are judge */}
+          {phase === "pick" && youAreJudge ? (
+            <main className="game-main">
+              <div className="judge-banner">
+                <span className="judge-banner-crown"><CrownIcon /></span>
+                You're the judge this round — sit back while everyone scrambles
+              </div>
+              <div className="stage">
+                <PromptCard text={prompt} className="stage-prompt" />
+                <div className="status-row">
+                  {players.filter(p => p.id !== judge.id).map((p) => {
+                    const isDisconnected = p.isConnected === false;
+                    return (
+                      <div key={p.id} style={{ position: 'relative', opacity: isDisconnected ? 0.4 : 1 }} title={isDisconnected ? `${p.name} (Disconnected)` : undefined}>
+                        <Avatar player={p} size={34} done={!isDisconnected && submittedUids.includes(p.id)} dim={!isDisconnected && !submittedUids.includes(p.id)} />
+                        {isDisconnected && (
+                          <span style={{ position: 'absolute', bottom: -2, right: -2, background: '#ff4d4f', width: 8, height: 8, borderRadius: '50%', border: '2px solid #141414' }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="waiting-area">
+                <div className="pile">
+                  {subs.map((s: any, i: number) => (
+                    <div key={s.uid} className="pile-slot" style={{ "--r": ((i % 5) - 2) * 5 + "deg" } as React.CSSProperties}>
+                      <FlipCard text={s.text} flipped={false} />
+                    </div>
+                  ))}
+                </div>
+                <p className="waiting-text">{subs.length} of {needed} answers in<span className="dots"><i>.</i><i>.</i><i>.</i></span></p>
+              </div>
+            </main>
+          ) : null}
+
+          {/* JUDGING */}
+          {phase === "judging" ? (
+            <main className="game-main">
+              <TimerBar seconds={timeLeft} total={settings.timer} />
+              <div className="stage stage-judging">
+                <PromptCard text={prompt} small={true} className="stage-prompt" />
+                <h2 className="judging-title">
+                  {youAreJudge ? "Pick the funniest answer" : (
+                    <React.Fragment>{judge.name} is deciding<span className="dots"><i>.</i><i>.</i><i>.</i></span></React.Fragment>
+                  )}
+                </h2>
+              </div>
+              <div className="judge-grid">
+                {subs.map((s: any, i: number) => (
+                  <FlipCard key={s.uid} text={s.text} flipped={flipped} delay={i * 0.42 + "s"} clickable={youAreJudge && flipped} onClick={() => handleCrown(s.uid)} />
+                ))}
+              </div>
+              {youAreJudge ? <p className="judging-hint">Answers are anonymous — tap a card to crown the winner</p> : null}
+            </main>
+          ) : null}
+
+          {/* REVEAL */}
+          {phase === "reveal" ? (
+            <main className="game-main reveal">
+              {gameState?.winnerUid !== 'none' && winner && <ConfettiBurst count={110} />}
+              {gameState?.winnerUid !== 'none' && winner ? (
+                <div className="winbanner">
+                  <Avatar player={winner} size={56} />
+                  <div className="winbanner-text">
+                    <span className="winbanner-name">{winner.isYou ? "You win the round!" : winner.name + " wins the round!"}</span>
+                    <span className="winbanner-sub">crowned by {judge.isYou ? "you" : judge.name}</span>
+                  </div>
+                  <span className="plusone">+1</span>
+                </div>
+              ) : gameState?.winnerUid === 'none' ? (
+                <div className="winbanner" style={{ background: '#ff4d4f', color: '#fff' }}>
+                  <div className="winbanner-text" style={{ paddingLeft: '8px' }}>
+                    <span className="winbanner-name">The judge has failed us!</span>
+                    <span className="winbanner-sub">No card was crowned in time. No points awarded.</span>
+                  </div>
+                </div>
+              ) : null}
+              <PromptCard text={prompt} fill={winnerSub ? winnerSub.text : ""} className="reveal-prompt" />
+              <div className="reveal-others">
+                {subs.filter((s: any) => s.uid !== gameState?.winnerUid).map((s: any) => (
+                  <AnswerCard key={s.uid} text={s.text} small={true} dimmed={true} />
+                ))}
+              </div>
+              <div className="reveal-foot">
+                <ReactionBar onReact={handleSendReaction} />
+                {isHost ? (
+                  <Btn big={true} onClick={handleNext}>{gameOver ? "See final results" : "Next round"}</Btn>
+                ) : (
+                  <span className="waiting-host" style={{ fontSize: '15px', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
+                    Waiting for host to start next round<span className="dots"><i>.</i><i>.</i><i>.</i></span>
+                  </span>
+                )}
+              </div>
+            </main>
+          ) : null}
+        </div>
+
+        {/* Right chat sidebar / drawer */}
+        {chatOpen && (
+          <>
+            <div className="chat-scrim" onClick={() => setChatOpen(false)}></div>
+            <aside className="lobby-chat game-chat-drawer">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 className="lobby-sec-title" style={{ margin: 0 }}>Chat</h3>
+                <button className="iconbtn" onClick={() => setChatOpen(false)} aria-label="Close chat" style={{ padding: '4px 8px', fontSize: '16px' }}>✕</button>
+              </div>
+              <div className="chat-msgs">
+                {chatMessages.map((m) => {
+                  const isMe = m.uid === myUid;
+                  return (
+                    <div key={m.id} className={"chat-msg" + (isMe ? " chat-mine" : "")}>
+                      <Avatar player={{ name: isMe ? "You" : m.name, color: m.color }} size={26} />
+                      <span className="chat-bubble"><b>{isMe ? "You" : m.name}</b> {m.text}</span>
+                    </div>
+                  );
+                })}
+                {chatMessages.length === 0 ? <p className="muted chat-empty">Say hi in-game…</p> : null}
+                <div ref={chatBottomRef} />
+              </div>
+              <div className="chat-inputrow">
+                <input
+                  className="input chat-input"
+                  placeholder="Message…"
+                  value={chatDraft}
+                  onChange={(e) => setChatDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") sendGameChat(); }}
+                />
+                <Btn onClick={sendGameChat}>Send</Btn>
+              </div>
+            </aside>
+          </>
+        )}
+      </div>
+      <ReactionLayer />
+
+      <ConfirmModal
+        open={showLeaveConfirm}
+        title="Leave Game?"
+        desc="Are you sure you want to leave the game? Your current score and progress will be lost."
+        confirmText="Leave Game"
+        confirmVariant="danger"
+        onConfirm={handleLeaveGame}
+        onClose={() => setShowLeaveConfirm(false)}
+      />
+
+      <ConfirmModal
+        open={showEndConfirm}
+        title="End Game?"
+        desc="Are you sure you want to end the game for everyone? This will abort the session for all connected players."
+        confirmText="End Game"
+        confirmVariant="danger"
+        onConfirm={handleEndGame}
+        onClose={() => setShowEndConfirm(false)}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ROOT: renders multiplayer game component
+// ─────────────────────────────────────────────────────────────────
+export default function GamePage() {
+  const params = useParams();
+  const code = (params?.code as string) || "GRUV";
+  const { isHydrated } = useGameContext();
+
+  if (!isHydrated) {
+    return (
+      <div className="screen center-screen">
+        <div className="waiting-text">Connecting<span className="dots"><i>.</i><i>.</i><i>.</i></span></div>
+      </div>
+    );
+  }
+
+  return <MultiplayerGame code={code} />;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CONFIRM MODAL COMPONENT (frosted-glass premium overlay)
+// ─────────────────────────────────────────────────────────────────
+interface ConfirmModalProps {
+  open: boolean;
+  title: string;
+  desc: string;
+  confirmText: string;
+  cancelText?: string;
+  confirmVariant?: "primary" | "secondary" | "ghost" | "accent" | "danger";
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+function ConfirmModal({ open, title, desc, confirmText, cancelText, confirmVariant, onConfirm, onClose }: ConfirmModalProps) {
+  if (!open) return null;
+  return (
+    <React.Fragment>
+      <div className="scrim scrim-open" style={{ zIndex: 110 }} onClick={onClose}></div>
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 111,
+        background: 'var(--paper)',
+        color: 'var(--paper-fg)',
+        borderRadius: '24px',
+        padding: '30px 32px',
+        width: '400px',
+        maxWidth: '90vw',
+        boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
+        border: '1px solid rgba(0,0,0,0.08)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '22px', fontWeight: 800, margin: 0 }}>{title}</h3>
+        <p style={{ fontSize: '14px', opacity: 0.7, lineHeight: 1.4, margin: '4px 0 16px' }}>{desc}</p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <Btn variant="secondary" onClick={onClose}>{cancelText || "Cancel"}</Btn>
+          <button 
+            className="btn"
+            style={{
+              background: confirmVariant === "danger" ? "#ff4d4f" : "var(--dark)",
+              color: "#fff",
+              border: 0,
+              padding: '10px 20px',
+              borderRadius: '999px',
+              fontWeight: 700,
+              fontFamily: 'var(--font-d)'
+            }}
+            onClick={onConfirm}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}

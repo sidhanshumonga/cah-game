@@ -1,0 +1,93 @@
+{
+  "packs": [
+    {
+      "name": "Classic",
+      "free": true,
+      "prompts": [
+        "My secret talent is ____.",
+        "The real reason I was late today: ____.",
+        "Honestly, the group chat needs more ____.",
+        "My therapist says I should stop ____.",
+        "The worst possible theme for a wedding: ____.",
+        "I knew the party was over when ____ showed up.",
+        "New from IKEA: the ____.",
+        "My villain origin story began with ____.",
+        "Rejected ice cream flavor: ____.",
+        "Step 1: ____. Step 2: profit.",
+        "The museum's newest exhibit: ____.",
+        "What's that smell? Oh, it's ____."
+      ],
+      "answers": [
+        "a suspicious amount of glitter",
+        "aggressive interpretive dance",
+        "my browser history",
+        "an emotional support raccoon",
+        "lukewarm soup",
+        "the world's smallest violin",
+        "a 45-minute voicemail",
+        "unsolicited life advice",
+        "decorative gourds",
+        "a PowerPoint about my feelings",
+        "extreme couponing",
+        "one single crouton",
+        "a haunted Roomba",
+        "matching family pajamas",
+        "the office printer",
+        "an unskippable ad",
+        "competitive napping",
+        "my lawyer's lawyer",
+        "seventeen alarms, all snoozed",
+        "a group project",
+        "free samples",
+        "the neighbor's wifi",
+        "a firm handshake",
+        "homemade kombucha",
+        "an army of pigeons",
+        "the last slice of pizza",
+        "a motivational poster",
+        "karaoke at 2am",
+        "my fantasy football team",
+        "a very long receipt",
+        "soup in a bag",
+        "left-handed scissors",
+        "a conspiracy corkboard",
+        "elevator small talk",
+        "expired coupons",
+        "interpretive whale sounds"
+      ]
+    },
+    {
+      "name": "Tech & Startups",
+      "free": false,
+      "price": 120,
+      "prompts": [
+        "Step 1: ____. Step 2: profit.",
+        "Our new pitch deck highlights our core competency: ____.",
+        "The latest unicorn is built entirely on ____."
+      ],
+      "answers": [
+        "the neighbor's wifi",
+        "homemade kombucha",
+        "pivoting to web3",
+        "running out of VC funding",
+        "an AI wrapper of a Google Sheet",
+        "sleeping under your desk"
+      ]
+    },
+    {
+      "name": "Space & Cosmos",
+      "free": false,
+      "price": 150,
+      "prompts": [
+        "Houston, we have a problem: ____.",
+        "One giant leap for ____."
+      ],
+      "answers": [
+        "tangy space ice cream",
+        "a zero-gravity high five",
+        "accidentally venting the airlock",
+        "an alien fleet disguised as starlink satellites"
+      ]
+    }
+  ]
+}
