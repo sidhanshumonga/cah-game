@@ -217,11 +217,7 @@ export default function CreateRoomPage() {
             </div>
             <div className="frow frow-inline">
               <label className="flabel">Custom cards</label>
-              {hasCustom ? (
-                <Switch on={custom} onChange={setCustom} />
-              ) : (
-                <button className="lockpill" onClick={handleStore}><LockIcon size={11} /> Unlock in Marketplace</button>
-              )}
+              <span className="lockpill" style={{ opacity: 0.7, cursor: 'default', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>Coming soon</span>
             </div>
             <div className="frow frow-inline" style={{ marginBottom: family ? '8px' : '20px' }}>
               <label className="flabel">Family-friendly mode</label>
