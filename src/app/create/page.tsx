@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGameContext, maxPlayersFor, ownsPack } from '@/context/GameContext';
+import { useGameContext, maxPlayersFor, ownsPack, sortPacks, isUserIndian } from '@/context/GameContext';
 import { Logo, Coin, LockIcon, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 
@@ -155,9 +155,12 @@ export default function CreateRoomPage() {
     router.push(`/lobby/${generatedCode}`);
   };
 
-  const filteredPacks = allPacks.filter((p) =>
-    p.name.toLowerCase().includes(packQuery.trim().toLowerCase())
-  );
+  const sortedFilteredPacks = React.useMemo(() => {
+    const filtered = allPacks.filter((p) =>
+      p.name.toLowerCase().includes(packQuery.trim().toLowerCase())
+    );
+    return sortPacks(filtered, account, isUserIndian());
+  }, [allPacks, packQuery, account]);
 
   if (!isHydrated || !isPacksLoaded) {
     return (
@@ -236,7 +239,7 @@ export default function CreateRoomPage() {
                 <button className="packtool packtool-store" onClick={handleStore}><Coin size={12} /> Marketplace</button>
               </div>
               <div className="packlist">
-                {filteredPacks.map((p) => {
+                {sortedFilteredPacks.map((p) => {
                   const owned = ownsPack(account, p);
                   const on = packs.includes(p.id);
                   const adultLocked = family && p.familyFriendly === false;
@@ -267,7 +270,7 @@ export default function CreateRoomPage() {
                     </button>
                   );
                 })}
-                {filteredPacks.length === 0 ? (
+                {sortedFilteredPacks.length === 0 ? (
                   <p className="pack-nomatch">No packs match “{packQuery}”</p>
                 ) : null}
               </div>

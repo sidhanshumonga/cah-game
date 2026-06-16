@@ -140,6 +140,85 @@ function generateRandomName(): string {
   return `${adj}${noun}${num}`;
 }
 
+export function isIndianPack(p: { id: string; name: string }): boolean {
+  const nameLower = p.name.toLowerCase();
+  const idLower = p.id.toLowerCase();
+  return (
+    nameLower.includes("india") ||
+    nameLower.includes("desi") ||
+    nameLower.includes("bollywood") ||
+    nameLower.includes("cricket") ||
+    idLower.includes("india") ||
+    idLower.includes("desi") ||
+    idLower.includes("bollywood") ||
+    idLower.includes("cricket")
+  );
+}
+
+export function isUserIndian(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && (tz === 'Asia/Kolkata' || tz === 'Asia/Calcutta')) {
+      return true;
+    }
+    const langs = navigator.languages || [navigator.language];
+    for (const lang of langs) {
+      const l = lang.toLowerCase();
+      if (
+        l === 'hi' ||
+        l.endsWith('-in') ||
+        l.startsWith('hi-') ||
+        l === 'mr' ||
+        l === 'ta' ||
+        l === 'te' ||
+        l === 'gu' ||
+        l === 'kn' ||
+        l === 'ml' ||
+        l === 'pa' ||
+        l === 'bn'
+      ) {
+        return true;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to detect location/timezone", e);
+  }
+  return false;
+}
+
+export function sortPacks(packs: Pack[], account: Account | null, isIndianUser: boolean): Pack[] {
+  const indexedPacks = packs.map((pack, index) => ({ pack, index }));
+  indexedPacks.sort((x, y) => {
+    const a = x.pack;
+    const b = y.pack;
+
+    // 1. Classic pack always first
+    const aIsClassic = a.id === 'classic';
+    const bIsClassic = b.id === 'classic';
+    if (aIsClassic && !bIsClassic) return -1;
+    if (!aIsClassic && bIsClassic) return 1;
+
+    // 2. Owned state
+    const aOwned = ownsPack(account, a);
+    const bOwned = ownsPack(account, b);
+    if (aOwned && !bOwned) return -1;
+    if (!aOwned && bOwned) return 1;
+
+    // 3. Location/Context priority (Indian packs for Indian users)
+    if (isIndianUser) {
+      const aIsIndian = isIndianPack(a);
+      const bIsIndian = isIndianPack(b);
+      if (aIsIndian && !bIsIndian) return -1;
+      if (!aIsIndian && bIsIndian) return 1;
+    }
+
+    // Stable sort: keep original order
+    return x.index - y.index;
+  });
+  return indexedPacks.map(item => item.pack);
+}
+
 const GameContext = createContext<GameContextType | null>(null);
 
 const DEFAULT_SETTINGS: GameSettings = {

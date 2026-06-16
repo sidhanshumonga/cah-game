@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGameContext, ownsPack } from '@/context/GameContext';
+import { useGameContext, ownsPack, sortPacks, isUserIndian } from '@/context/GameContext';
 import { Logo, Coin, LockIcon } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 
@@ -14,6 +14,10 @@ const STORE_SECTIONS = [
 export default function StorePage() {
   const router = useRouter();
   const { account, buyPack, buyUpgrade, isHydrated, isPacksLoaded, packs } = useGameContext();
+
+  const sortedPacks = React.useMemo(() => {
+    return sortPacks(packs, account, isUserIndian());
+  }, [packs, account]);
   const [activeSection, setActiveSection] = useState("packs");
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
@@ -109,7 +113,7 @@ export default function StorePage() {
           <section ref={(el) => { sectionRefs.current.packs = el; }}>
             <h3 className="store-sec store-sec-first">Card packs</h3>
             <div className="store-grid">
-              {packs.map((p) => {
+              {sortedPacks.map((p) => {
                 const owned = ownsPack(account, p);
                 return (
                   <div key={p.id} className={"store-card" + (owned ? " store-owned" : "")}>
