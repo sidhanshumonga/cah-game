@@ -204,32 +204,34 @@ export function sortPacks(packs: Pack[], account: Account | null, isIndianUser: 
     // Group 1: Owned Indian packs (only for Indian users)
     // Group 2: Other owned packs
     // Group 3: Unowned Indian packs (only for Indian users)
-    // Group 4: Other unowned packs
+    // Group 4: Other unowned packs (and free Indian packs for non-Indian users)
     let aGroup = 0;
-    if (aOwned) {
-      if (isIndianUser && isIndianPack(a)) {
-        aGroup = 1;
+    if (isIndianUser) {
+      if (aOwned) {
+        aGroup = isIndianPack(a) ? 1 : 2;
       } else {
-        aGroup = 2;
+        aGroup = isIndianPack(a) ? 3 : 4;
       }
     } else {
-      if (isIndianUser && isIndianPack(a)) {
-        aGroup = 3;
+      const aIsFreeIndian = !!a.free && isIndianPack(a);
+      if (aOwned && !aIsFreeIndian) {
+        aGroup = 2;
       } else {
         aGroup = 4;
       }
     }
 
     let bGroup = 0;
-    if (bOwned) {
-      if (isIndianUser && isIndianPack(b)) {
-        bGroup = 1;
+    if (isIndianUser) {
+      if (bOwned) {
+        bGroup = isIndianPack(b) ? 1 : 2;
       } else {
-        bGroup = 2;
+        bGroup = isIndianPack(b) ? 3 : 4;
       }
     } else {
-      if (isIndianUser && isIndianPack(b)) {
-        bGroup = 3;
+      const bIsFreeIndian = !!b.free && isIndianPack(b);
+      if (bOwned && !bIsFreeIndian) {
+        bGroup = 2;
       } else {
         bGroup = 4;
       }
