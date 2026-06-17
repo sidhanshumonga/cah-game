@@ -28,7 +28,7 @@ interface RoomPlayer {
 export default function LobbyPage() {
   const router = useRouter();
   const params = useParams();
-  const code = (params?.code as string) || "ABCD";
+  const code = ((params?.code as string) || "ABCD").toUpperCase();
 
   const { mode, settings, setSettings, setAccount, startGame, isHydrated, isPacksLoaded, account, getCardsForPacks, packs } = useGameContext();
 

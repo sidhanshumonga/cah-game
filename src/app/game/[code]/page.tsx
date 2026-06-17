@@ -845,7 +845,7 @@ function MultiplayerGame({ code }: { code: string }) {
 // ─────────────────────────────────────────────────────────────────
 export default function GamePage() {
   const params = useParams();
-  const code = (params?.code as string) || "GRUV";
+  const code = ((params?.code as string) || "GRUV").toUpperCase();
   const { isHydrated, isPacksLoaded } = useGameContext();
 
   if (!isHydrated || !isPacksLoaded) {
