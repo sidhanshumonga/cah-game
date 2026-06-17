@@ -187,6 +187,100 @@ export function isUserIndian(): boolean {
   return false;
 }
 
+export interface RegionInfo {
+  country: 'IN' | 'GB' | 'CN' | 'AE' | 'US';
+  currency: 'inr' | 'gbp' | 'usd' | 'aed';
+  symbol: string;
+  bundles: Array<{ coins: number; tag: string; productId: string; best?: boolean }>;
+}
+
+export function getUserRegion(): RegionInfo {
+  const defaultInfo: RegionInfo = {
+    country: 'US',
+    currency: 'usd',
+    symbol: '$',
+    bundles: [
+      { coins: 500, tag: "$4.99", productId: "prod_UiU1bLVVTs3WEp" },
+      { coins: 1200, tag: "$9.99", productId: "prod_UiU1NqbXoVoF78", best: true },
+      { coins: 3000, tag: "$19.99", productId: "prod_UiU2mxisRKNBys" }
+    ]
+  };
+
+  if (typeof window === 'undefined') return defaultInfo;
+
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const langs = navigator.languages || [navigator.language];
+
+    // 1. Check India
+    const isIndiaTz = tz && (tz === 'Asia/Kolkata' || tz === 'Asia/Calcutta');
+    const isIndiaLang = langs.some(lang => {
+      const l = lang.toLowerCase();
+      return l === 'hi' || l.endsWith('-in') || l.startsWith('hi-') || 
+             ['mr', 'ta', 'te', 'gu', 'kn', 'ml', 'pa', 'bn'].some(code => l === code);
+    });
+    if (isIndiaTz || isIndiaLang) {
+      return {
+        country: 'IN',
+        currency: 'inr',
+        symbol: '₹',
+        bundles: [
+          { coins: 500, tag: "₹199", productId: "prod_UiU1bLVVTs3WEp" },
+          { coins: 1200, tag: "₹399", productId: "prod_UiU1NqbXoVoF78", best: true },
+          { coins: 3000, tag: "₹799", productId: "prod_UiU2mxisRKNBys" }
+        ]
+      };
+    }
+
+    // 2. Check UK
+    const isUKTz = tz && (tz === 'Europe/London' || tz === 'Europe/Belfast' || tz === 'Europe/Guernsey' || tz === 'Europe/Jersey' || tz === 'Europe/Isle_of_Man');
+    const isUKLang = langs.some(lang => lang.toLowerCase().endsWith('-gb'));
+    if (isUKTz || isUKLang) {
+      return {
+        country: 'GB',
+        currency: 'gbp',
+        symbol: '£',
+        bundles: [
+          { coins: 500, tag: "£3.99", productId: "prod_UiU1bLVVTs3WEp" },
+          { coins: 1200, tag: "£7.99", productId: "prod_UiU1NqbXoVoF78", best: true },
+          { coins: 3000, tag: "£15.99", productId: "prod_UiU2mxisRKNBys" }
+        ]
+      };
+    }
+
+    // 3. Check UAE
+    const isUAETz = tz && tz === 'Asia/Dubai';
+    const isUAELang = langs.some(lang => lang.toLowerCase().endsWith('-ae'));
+    if (isUAETz || isUAELang) {
+      return {
+        country: 'AE',
+        currency: 'aed',
+        symbol: 'AED ',
+        bundles: [
+          { coins: 500, tag: "AED 18.99", productId: "prod_UiU1bLVVTs3WEp" },
+          { coins: 1200, tag: "AED 36.99", productId: "prod_UiU1NqbXoVoF78", best: true },
+          { coins: 3000, tag: "AED 72.99", productId: "prod_UiU2mxisRKNBys" }
+        ]
+      };
+    }
+
+    // 4. Check China (uses defaultInfo but sets country = CN)
+    const isChinaTz = tz && ['Asia/Shanghai', 'Asia/Chongqing', 'Asia/Harbin', 'Asia/Urumqi'].includes(tz);
+    const isChinaLang = langs.some(lang => lang.toLowerCase().startsWith('zh'));
+    if (isChinaTz || isChinaLang) {
+      return {
+        ...defaultInfo,
+        country: 'CN'
+      };
+    }
+
+  } catch (e) {
+    console.error("Failed to detect location/timezone for region pricing", e);
+  }
+
+  return defaultInfo;
+}
+
 export function sortPacks(packs: Pack[], account: Account | null, isIndianUser: boolean): Pack[] {
   return [...packs].sort((a, b) => {
     // 1. Classic pack always first

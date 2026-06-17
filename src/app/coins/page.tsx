@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGameContext } from '@/context/GameContext';
+import { useGameContext, getUserRegion, RegionInfo } from '@/context/GameContext';
 import { Logo, Coin } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 
@@ -11,6 +11,21 @@ export default function CoinsPage() {
   const { account, isHydrated } = useGameContext();
   const [loadingBundle, setLoadingBundle] = useState<number | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+
+  const [userRegion, setUserRegion] = useState<RegionInfo>({
+    country: 'US',
+    currency: 'usd',
+    symbol: '$',
+    bundles: [
+      { coins: 500, tag: "$4.99", productId: "prod_UiU1bLVVTs3WEp" },
+      { coins: 1200, tag: "$9.99", productId: "prod_UiU1NqbXoVoF78", best: true },
+      { coins: 3000, tag: "$19.99", productId: "prod_UiU2mxisRKNBys" }
+    ]
+  });
+
+  useEffect(() => {
+    setUserRegion(getUserRegion());
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -50,6 +65,7 @@ export default function CoinsPage() {
           coins: b.coins,
           uid: account.uid,
           email: account.email || '',
+          currency: userRegion.currency,
         }),
       });
       const data = await res.json();
@@ -106,7 +122,7 @@ export default function CoinsPage() {
         ) : null}
         <p className="store-earn-note">Top up your coin balance to unlock upgrades and expansion packs in the marketplace:</p>
         <div className="store-grid store-grid-wide">
-          {GAME_DATA.creditBundles.map((b) => (
+          {userRegion.bundles.map((b) => (
             <div key={b.coins} className={"store-card bundle" + (b.best ? " bundle-best" : "")}>
               {b.best ? <span className="bundle-flag">Best value</span> : null}
               <span className="store-card-name"><Coin size={18} /> {b.coins.toLocaleString()}</span>

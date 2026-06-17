@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
-    const { productId, coins, uid, email } = await req.json();
+    const { productId, coins, uid, email, currency } = await req.json();
 
     if (!productId || !coins || !uid) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -24,14 +24,35 @@ export async function POST(req: Request) {
     const product = await stripe.products.retrieve(targetProductId, {
       expand: ['default_price'],
     });
-    const defaultPrice = product.default_price as Stripe.Price;
+    
+    let targetPriceObj = product.default_price as Stripe.Price;
 
-    if (!defaultPrice) {
+    // 2. If a local currency is requested, try to find a matching price
+    if (currency && currency !== 'usd') {
+      try {
+        const prices = await stripe.prices.list({
+          product: targetProductId,
+          active: true,
+          limit: 20,
+        });
+        const match = prices.data.find(p => p.currency.toLowerCase() === currency.toLowerCase());
+        if (match) {
+          targetPriceObj = match;
+          console.log(`[checkout] Found matching localized price for currency ${currency}: ${match.id}`);
+        } else {
+          console.log(`[checkout] No price matching currency ${currency} found for product ${targetProductId}. Falling back to default price.`);
+        }
+      } catch (priceErr) {
+        console.error('[checkout] Failed to list prices, falling back to default:', priceErr);
+      }
+    }
+
+    if (!targetPriceObj) {
       return NextResponse.json({ error: 'Stripe product has no default price configured' }, { status: 400 });
     }
 
-    const priceId = defaultPrice.id;
-    const mode = (defaultPrice.type === 'recurring' || !!defaultPrice.recurring) ? 'subscription' : 'payment';
+    const priceId = targetPriceObj.id;
+    const mode = (targetPriceObj.type === 'recurring' || !!targetPriceObj.recurring) ? 'subscription' : 'payment';
 
     // 2. Create the Checkout Session
     const session = await stripe.checkout.sessions.create({
