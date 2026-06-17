@@ -1,9 +1,51 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameContext } from '@/context/GameContext';
-import { Logo, Btn, Avatar, Coin } from '@/components/components';
+import { Logo, Btn, Avatar, Coin, PromptCard, AnswerCard } from '@/components/components';
+
+const SAMPLE_PAIRS = [
+  { prompt: "My secret talent is ____.", answer: "aggressive interpretive dance" },
+  { prompt: "The real reason I was late today: ____.", answer: "a haunted Roomba" },
+  { prompt: "New from IKEA: the ____.", answer: "decorative gourds" },
+  { prompt: "My villain origin story began with ____.", answer: "a group project" },
+  { prompt: "Rejected ice cream flavor: ____.", answer: "lukewarm soup" },
+  { prompt: "What's that smell? Oh, it's ____.", answer: "my browser history" }
+];
+
+function SampleDeck() {
+  const [i, setI] = useState(0);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(() => setI((n) => (n + 1) % SAMPLE_PAIRS.length), 3400);
+    return () => clearInterval(t);
+  }, [paused]);
+  const pair = SAMPLE_PAIRS[i];
+  function advance() { setI((n) => (n + 1) % SAMPLE_PAIRS.length); }
+  return (
+    <div
+      className="sample-deck"
+      onClick={advance}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      title="Click for another"
+    >
+      <span className="sample-kicker">A taste of the deck</span>
+      <div className="sample-cards">
+        <PromptCard key={"p" + i} text={pair.prompt} small={true} className="sample-prompt" />
+        <span className="sample-plus" aria-hidden="true">+</span>
+        <AnswerCard key={"a" + i} text={pair.answer} small={true} className="sample-answer" />
+      </div>
+      <div className="sample-dots" aria-hidden="true">
+        {SAMPLE_PAIRS.map((_, k) => (
+          <span key={k} className={"sample-dot" + (k === i ? " sample-dot-on" : "")}></span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const OTHER_GAME = {
   name: "Hot Seat",
@@ -120,6 +162,7 @@ export default function LandingPage() {
       <div className="hero">
         <h1 className="hero-logo"><Logo big={true} /></h1>
         <p className="tagline">{"The fill\u2011in\u2011the\u2011blank party game for people with questionable friends."}</p>
+        <SampleDeck />
         
         {!joining ? (
           <div className="landing-actions">
@@ -160,6 +203,11 @@ export default function LandingPage() {
           <li>No downloads, nothing to install</li>
           <li>Phones, laptops, whatever</li>
         </ul>
+        
+        <button className="howto-link" onClick={() => router.push('/howto')}>
+          <span className="howto-link-q">?</span> New here? How to play
+        </button>
+
         <CrossPromo />
 
         <footer className="landing-footer">

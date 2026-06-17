@@ -1598,3 +1598,71 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   opacity: 1;
   text-decoration: underline;
 }
+
+/* ---------- Sample deck (homepage) ---------- */
+.sample-deck { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 4px 0 30px; cursor: pointer; user-select: none; }
+.sample-kicker { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.45; }
+.sample-cards { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.sample-plus { font-family: var(--font-d); font-weight: 800; font-size: 24px; opacity: 0.4; }
+.sample-prompt { animation: sampleIn calc(var(--m) * 0.4s) cubic-bezier(.2,.9,.3,1.2) both; }
+.sample-answer { animation: sampleIn calc(var(--m) * 0.4s) cubic-bezier(.2,.9,.3,1.2) both; animation-delay: calc(var(--m) * 0.08s); }
+@keyframes sampleIn { from { opacity: 0; transform: translateY(14px) rotate(-2deg) scale(0.94); } }
+.sample-deck .sample-prompt { transform: rotate(-3deg); }
+.sample-deck .sample-answer { transform: rotate(3deg); }
+.sample-dots { display: flex; gap: 6px; }
+.sample-dot { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in oklab, var(--fg) 25%, transparent); transition: all 0.25s; }
+.sample-dot-on { background: var(--accent); width: 16px; border-radius: 999px; }
+@media (max-width: 540px) {
+  .sample-cards { flex-direction: column; gap: 8px; }
+  .sample-plus { display: none; }
+}
+
+/* ---------- How to Play ---------- */
+.howto-link { margin: 30px auto 0; display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 0; color: var(--fg);
+  font-family: var(--font-b); font-weight: 700; font-size: 15px; opacity: 0.75; padding: 8px 14px; border-radius: 999px; transition: opacity 0.15s, background 0.15s; }
+.howto-link:hover { opacity: 1; background: color-mix(in oklab, var(--fg) 8%, transparent); }
+.howto-link-q { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--dark);
+  font-family: var(--font-d); font-weight: 800; font-size: 14px; }
+.howto-head-spacer { margin-left: auto; }
+.howto-body { max-width: 880px; }
+.howto-title { margin-bottom: 6px; }
+.howto-lead { font-size: 17px; opacity: 0.65; margin: 0 0 38px; text-wrap: pretty; max-width: 540px; }
+.howto-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 28px; }
+.howto-step { display: grid; grid-template-columns: 1fr 240px; gap: 32px; align-items: center; background: var(--paper); color: var(--paper-fg);
+  border-radius: 20px; border: 1px solid rgba(0,0,0,0.08); padding: 26px 30px; box-shadow: 0 14px 30px -20px rgba(0,0,0,0.4); }
+.howto-step:nth-child(even) { grid-template-columns: 240px 1fr; }
+.howto-step:nth-child(even) .howto-step-text { order: 2; }
+.howto-step:nth-child(even) .howto-step-art { order: 1; }
+.howto-step-num { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--dark);
+  font-family: var(--font-d); font-weight: 800; font-size: 18px; margin-bottom: 12px; }
+.howto-step-title { font-family: var(--font-d); font-weight: 700; font-size: 23px; margin: 0 0 8px; }
+.howto-step-body { font-size: 15px; line-height: 1.5; opacity: 0.72; margin: 0; text-wrap: pretty; }
+.howto-step-art { display: grid; place-items: center; min-height: 150px; }
+.howto-art { display: flex; align-items: center; justify-content: center; position: relative; }
+.howto-art-players { gap: 6px; }
+.howto-art-players .avatar:nth-child(1) { transform: rotate(-8deg); }
+.howto-art-players .avatar:nth-child(2) { transform: rotate(4deg) translateY(-4px); }
+.howto-art-players .avatar:nth-child(3) { transform: rotate(-3deg); }
+.howto-art-players .avatar:nth-child(4) { transform: rotate(7deg) translateY(-3px); }
+.howto-code { font-family: var(--font-d); font-weight: 800; letter-spacing: 0.2em; font-size: 18px; background: var(--dark); color: var(--dark-fg);
+  border-radius: 10px; padding: 7px 12px; margin-left: 10px; }
+.howto-prompt { transform: rotate(-3deg); }
+.howto-art-hand { height: 150px; }
+.howto-art-hand .acard-small { position: absolute; }
+.howto-fan-1 { transform: rotate(-14deg) translateX(-46px) translateY(8px); }
+.howto-fan-2 { transform: rotate(0deg) translateY(-12px); z-index: 3; }
+.howto-fan-3 { transform: rotate(14deg) translateX(46px) translateY(8px); }
+.howto-art-judge .howto-crown { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 30px; height: 30px; color: var(--accent2); z-index: 4; }
+.howto-art-react { gap: 8px; font-size: 34px; }
+.howto-art-react .howto-emoji:nth-child(odd) { transform: translateY(-8px); }
+.howto-tips-title { font-family: var(--font-d); font-weight: 700; font-size: 20px; margin: 40px 0 14px; }
+.howto-tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.howto-tip { display: flex; flex-direction: column; gap: 5px; background: color-mix(in oklab, var(--fg) 5%, transparent); border-radius: 14px; padding: 16px 18px; }
+.howto-tip-h { font-family: var(--font-d); font-weight: 700; font-size: 16px; }
+.howto-tip-b { font-size: 13.5px; line-height: 1.45; opacity: 0.65; }
+.howto-cta { display: flex; gap: 12px; justify-content: center; margin-top: 44px; flex-wrap: wrap; }
+@media (max-width: 680px) {
+  .howto-step, .howto-step:nth-child(even) { grid-template-columns: 1fr; gap: 22px; }
+  .howto-step:nth-child(even) .howto-step-text { order: 1; }
+  .howto-step:nth-child(even) .howto-step-art { order: 2; }
+}
