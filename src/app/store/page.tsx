@@ -90,7 +90,7 @@ export default function StorePage() {
       </header>
 
       <div className="create-body store-layout">
-        <h2 className="create-title store-title">Marketplace</h2>
+        <h1 className="create-title store-title">Marketplace</h1>
         <nav className="store-nav">
           {STORE_SECTIONS.map((s) => (
             <button

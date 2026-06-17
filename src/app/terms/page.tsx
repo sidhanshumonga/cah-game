@@ -14,7 +14,7 @@ export default function TermsPage() {
         <Logo />
       </header>
       <div className="create-body" style={{ maxWidth: '680px', margin: '0 auto', textAlign: 'left', lineHeight: 1.6 }}>
-        <h2 className="create-title">Terms of Service</h2>
+        <h1 className="create-title">Terms of Service</h1>
         <p className="muted" style={{ fontSize: '14px', marginBottom: '30px' }}>Last updated: June 16, 2026</p>
         
         <section style={{ margin: '24px 0' }}>
