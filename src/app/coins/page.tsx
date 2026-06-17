@@ -41,7 +41,7 @@ export default function CoinsPage() {
   }, [router]);
 
   const handleBack = () => {
-    router.push('/store');
+    router.back();
   };
 
   const handleLogin = () => {
