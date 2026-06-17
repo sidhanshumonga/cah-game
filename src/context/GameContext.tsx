@@ -480,19 +480,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
           firebaseUidRef.current = uid;
 
-          // Subscribe to real-time updates for their Firestore profile
-          unsubscribeProfile = subscribeUserProfile(uid, async (profile: any) => {
-            if (profile) {
-              setAccount({
-                ...profile,
-                uid,
-                name: profile.name || displayName,
-                email,
-                color: profile.color || avatarColor,
-                admin: isAdmin,
-              });
-            } else {
-              // Create profile if it doesn't exist
+          // 1. One-time check and profile creation using getUserProfile (server-first lookup)
+          try {
+            const existingProfile = await getUserProfile(uid);
+            if (!existingProfile) {
+              console.log("[auth] No user profile document found for uid, creating new profile...");
               const randomName = generateRandomName();
               const newProfile: Account = {
                 uid,
@@ -510,6 +502,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
                 admin: isAdmin,
               };
               await setUserProfile(uid, newProfile);
+            }
+          } catch (profileErr) {
+            console.error("[auth] Error checking/creating profile document:", profileErr);
+          }
+
+          // 2. Subscribe to real-time updates for their Firestore profile (read-only listener)
+          unsubscribeProfile = subscribeUserProfile(uid, (profile: any) => {
+            if (profile) {
+              setAccount({
+                ...profile,
+                uid,
+                name: profile.name || displayName,
+                email,
+                color: profile.color || avatarColor,
+                admin: isAdmin,
+              });
             }
           });
 
