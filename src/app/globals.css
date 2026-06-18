@@ -52,15 +52,15 @@ input { font-family: inherit; }
   color: var(--fg); border-radius: 12px; padding: 11px 14px; font-size: 16px; outline: none; transition: border-color 0.15s; }
 .input:focus { border-color: var(--accent); }
 /* Inputs that sit on paper surfaces (panels, chat) must use the paper foreground */
-.panel .input, .lobby-chat .input, .auth .input, .profile-card .input {
+.panel .input, .lobby-chat .input, .auth .input, .profile-card .input, .fbpop .input {
   color: var(--paper-fg);
   background: #ffffff;
   border: 2px solid color-mix(in oklab, var(--paper-fg) 20%, transparent);
 }
-.panel .input::placeholder, .lobby-chat .input::placeholder, .auth .input::placeholder, .profile-card .input::placeholder {
+.panel .input::placeholder, .lobby-chat .input::placeholder, .auth .input::placeholder, .profile-card .input::placeholder, .fbpop .input::placeholder {
   color: color-mix(in oklab, var(--paper-fg) 45%, transparent);
 }
-.panel .input:focus, .lobby-chat .input:focus, .auth .input:focus, .profile-card .input:focus {
+.panel .input:focus, .lobby-chat .input:focus, .auth .input:focus, .profile-card .input:focus, .fbpop .input:focus {
   border-color: var(--accent2);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent2) 20%, transparent);
 }
