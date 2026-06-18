@@ -44,7 +44,7 @@ function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 
 export default function CreateRoomPage() {
   const router = useRouter();
-  const { account, setAccount, settings, setSettings, setMode, setGameKey, isHydrated, isPacksLoaded, packs: allPacks } = useGameContext();
+  const { account, setAccount, settings, setSettings, setMode, setGameKey, isHydrated, isPacksLoaded, packs: allPacks, buyPack } = useGameContext();
 
   const allowed = maxPlayersFor(account);
   const hasCustom = !!(account && account.upgrades.includes("customCards"));
@@ -68,6 +68,10 @@ export default function CreateRoomPage() {
   const [packQuery, setPackQuery] = useState("");
   const [lockedHint, setLockedHint] = useState<any>(null);
   const [familyNotice, setFamilyNotice] = useState<string | null>(null);
+
+  const [showBuyConfirmModal, setShowBuyConfirmModal] = useState(false);
+  const [buyConfirmPack, setBuyConfirmPack] = useState<any | null>(null);
+  const [buyLoading, setBuyLoading] = useState(false);
 
   useEffect(() => {
     if (family) {
@@ -113,6 +117,31 @@ export default function CreateRoomPage() {
 
   const handleStore = () => {
     router.push('/store');
+  };
+
+  const handleInstantBuy = async () => {
+    if (!buyConfirmPack || !account) return;
+    setBuyLoading(true);
+    try {
+      buyPack({
+        id: buyConfirmPack.id,
+        name: buyConfirmPack.name,
+        price: buyConfirmPack.price || 0
+      });
+      
+      setPacks((prev) => {
+        if (prev.includes(buyConfirmPack.id)) return prev;
+        if (prev.length >= MAX_PACKS) return prev;
+        return [...prev, buyConfirmPack.id];
+      });
+      
+      setShowBuyConfirmModal(false);
+      setBuyConfirmPack(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBuyLoading(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -253,7 +282,14 @@ export default function CreateRoomPage() {
                       <button
                         key={p.id}
                         className="packchip packchip-locked"
-                        onClick={() => setLockedHint(adultLocked ? { ...p, adultLocked: true } : p)}
+                        onClick={() => {
+                          if (adultLocked) {
+                            setLockedHint({ ...p, adultLocked: true });
+                          } else {
+                            setBuyConfirmPack(p);
+                            setShowBuyConfirmModal(true);
+                          }
+                        }}
                       >
                         <LockIcon size={11} /> {p.name}
                         {adultLocked ? (
@@ -307,6 +343,71 @@ export default function CreateRoomPage() {
           <span className="create-cta-hint">You'll get a room code and invite link to share</span>
         </div>
       </div>
+
+      {showBuyConfirmModal && buyConfirmPack && (
+        <React.Fragment>
+          <div className="scrim scrim-open" style={{ zIndex: 110 }} onClick={() => setShowBuyConfirmModal(false)}></div>
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 111,
+            background: 'var(--dark)',
+            color: 'var(--fg)',
+            borderRadius: '24px',
+            padding: '30px 32px',
+            width: '440px',
+            maxWidth: '92vw',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            textAlign: 'center'
+          }}>
+            {!account ? (
+              <React.Fragment>
+                <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '20px', fontWeight: 800, margin: 0 }}>Sign in to Unlock</h3>
+                <p style={{ fontSize: '14px', opacity: 0.8, lineHeight: 1.5, margin: 0 }}>
+                  You need to sign in to purchase and unlock the <b>“{buyConfirmPack.name}”</b> expansion pack.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+                  <Btn onClick={() => router.push('/login?redirectTo=/create')}>Sign in with Google</Btn>
+                  <Btn variant="secondary" onClick={() => setShowBuyConfirmModal(false)}>Cancel</Btn>
+                </div>
+              </React.Fragment>
+            ) : account.credits >= (buyConfirmPack.price || 0) ? (
+              <React.Fragment>
+                <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '20px', fontWeight: 800, margin: 0 }}>Unlock Expansion Pack?</h3>
+                <p style={{ fontSize: '14px', opacity: 0.8, lineHeight: 1.5, margin: 0 }}>
+                  Would you like to instantly unlock the <b>“{buyConfirmPack.name}”</b> pack for <Coin size={12} /> <b>{buyConfirmPack.price}</b> coins?
+                </p>
+                <p style={{ fontSize: '13px', opacity: 0.6, margin: '-4px 0 4px' }}>
+                  Your balance: <Coin size={11} /> {account.credits} coins
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+                  <Btn onClick={handleInstantBuy} disabled={buyLoading}>
+                    {buyLoading ? "Unlocking..." : `Unlock Pack (–${buyConfirmPack.price})`}
+                  </Btn>
+                  <Btn variant="secondary" onClick={() => setShowBuyConfirmModal(false)} disabled={buyLoading}>Cancel</Btn>
+                </div>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '20px', fontWeight: 800, margin: 0, color: 'var(--accent2)' }}>Not Enough Coins</h3>
+                <p style={{ fontSize: '14px', opacity: 0.8, lineHeight: 1.5, margin: 0 }}>
+                  The <b>“{buyConfirmPack.name}”</b> pack costs <Coin size={12} /> <b>{buyConfirmPack.price}</b> coins, but you only have <Coin size={12} /> <b>{account.credits}</b> coins.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+                  <Btn onClick={() => router.push('/coins')}>Get Coins</Btn>
+                  <Btn variant="secondary" onClick={() => setShowBuyConfirmModal(false)}>Cancel</Btn>
+                </div>
+              </React.Fragment>
+            )}
+          </div>
+        </React.Fragment>
+      )}
     </div>
   );
 }

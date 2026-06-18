@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGameContext, ownsPack, sortPacks, isUserIndian } from '@/context/GameContext';
-import { Logo, Coin, LockIcon } from '@/components/components';
+import { useGameContext, ownsPack, sortPacks, isUserIndian, Pack } from '@/context/GameContext';
+import { Logo, Coin, LockIcon, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 
 const STORE_SECTIONS = [
@@ -14,6 +14,7 @@ const STORE_SECTIONS = [
 export default function StorePage() {
   const router = useRouter();
   const { account, buyPack, buyUpgrade, isHydrated, isPacksLoaded, packs } = useGameContext();
+  const [previewPack, setPreviewPack] = useState<Pack | null>(null);
 
   const sortedPacks = React.useMemo(() => {
     return sortPacks(packs, account, isUserIndian());
@@ -119,6 +120,13 @@ export default function StorePage() {
                   <div key={p.id} className={"store-card" + (owned ? " store-owned" : "")}>
                     <span className="store-card-name">{p.name}</span>
                     <span className="store-card-sub">{p.cards} cards</span>
+                    <button 
+                      className="linkbtn" 
+                      style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.85, padding: '4px 0', alignSelf: 'flex-start', border: 0, background: 'transparent', cursor: 'pointer', outline: 'none' }}
+                      onClick={() => setPreviewPack(p)}
+                    >
+                      👁️ Preview Cards
+                    </button>
                     {p.free ? (
                       <span className="store-tag">Included free</span>
                     ) : owned ? (
@@ -170,6 +178,114 @@ export default function StorePage() {
           </section>
         </div>
       </div>
+
+      {previewPack && (
+        <PackPreviewModal pack={previewPack} onClose={() => setPreviewPack(null)} />
+      )}
     </div>
+  );
+}
+
+interface PackPreviewModalProps {
+  pack: Pack;
+  onClose: () => void;
+}
+
+function PackPreviewModal({ pack, onClose }: PackPreviewModalProps) {
+  const samplePrompts = pack.prompts ? pack.prompts.slice(0, 3) : [];
+  const sampleAnswers = pack.answers ? pack.answers.slice(0, 5) : [];
+
+  return (
+    <React.Fragment>
+      <div className="scrim scrim-open" style={{ zIndex: 110 }} onClick={onClose}></div>
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 111,
+        background: 'var(--dark)',
+        color: 'var(--fg)',
+        borderRadius: '24px',
+        padding: '30px 32px',
+        width: '640px',
+        maxWidth: '92vw',
+        maxHeight: '85vh',
+        boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        overflowY: 'auto'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '22px', fontWeight: 800, margin: 0 }}>{pack.name}</h3>
+            <span style={{ fontSize: '13px', opacity: 0.6 }}>Pack Preview ({pack.cards} cards total)</span>
+          </div>
+          <button className="iconbtn" onClick={onClose} aria-label="Close" style={{ fontSize: '18px' }}>✕</button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div>
+            <h4 style={{ fontFamily: 'var(--font-d)', fontSize: '15px', fontWeight: 700, margin: '0 0 12px', opacity: 0.9 }}>Prompts (Black Cards)</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {samplePrompts.length > 0 ? (
+                samplePrompts.map((txt, index) => (
+                  <div key={index} style={{
+                    background: '#0D0B13',
+                    color: '#F2EFE6',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    fontSize: '13px',
+                    lineHeight: 1.4,
+                    minHeight: '80px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    textAlign: 'left'
+                  }}>
+                    <span style={{ fontFamily: 'var(--font-d)', fontWeight: 600 }}>{txt}</span>
+                    <span style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.05em', marginTop: '6px' }}>Point Blank</span>
+                  </div>
+                ))
+              ) : (
+                <p style={{ fontSize: '13px', opacity: 0.5, margin: 0 }}>No custom prompts in this pack.</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h4 style={{ fontFamily: 'var(--font-d)', fontSize: '15px', fontWeight: 700, margin: '0 0 12px', opacity: 0.9 }}>Answers (White Cards)</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {sampleAnswers.length > 0 ? (
+                sampleAnswers.map((txt, index) => (
+                  <div key={index} style={{
+                    background: '#F8F5EC',
+                    color: '#181520',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    fontSize: '13px',
+                    lineHeight: 1.3,
+                    fontWeight: 600,
+                    textAlign: 'left',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                  }}>
+                    {txt}
+                  </div>
+                ))
+              ) : (
+                <p style={{ fontSize: '13px', opacity: 0.5, margin: 0 }}>No custom answers in this pack.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px', marginTop: '6px' }}>
+          <Btn variant="secondary" onClick={onClose}>Close Preview</Btn>
+        </div>
+      </div>
+    </React.Fragment>
   );
 }

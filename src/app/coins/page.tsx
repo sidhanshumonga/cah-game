@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameContext, getUserRegion, RegionInfo } from '@/context/GameContext';
-import { Logo, Coin } from '@/components/components';
+import { Logo, Btn, Coin } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 
 export default function CoinsPage() {
@@ -11,6 +11,7 @@ export default function CoinsPage() {
   const { account, isHydrated } = useGameContext();
   const [loadingBundle, setLoadingBundle] = useState<number | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [showGoogleLoginPrompt, setShowGoogleLoginPrompt] = useState(false);
 
   const [userRegion, setUserRegion] = useState<RegionInfo>({
     country: 'US',
@@ -51,6 +52,10 @@ export default function CoinsPage() {
   const handleCheckout = async (b: any) => {
     if (!account) {
       handleLogin();
+      return;
+    }
+    if (!account.uid) {
+      setShowGoogleLoginPrompt(true);
       return;
     }
     setLoadingBundle(b.coins);
@@ -139,6 +144,40 @@ export default function CoinsPage() {
         </div>
         <p className="coins-note">Coins are spent in the Marketplace on packs and upgrades. Payments are processed securely via Stripe.</p>
       </div>
+
+      {showGoogleLoginPrompt && (
+        <React.Fragment>
+          <div className="scrim scrim-open" style={{ zIndex: 110 }} onClick={() => setShowGoogleLoginPrompt(false)}></div>
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 111,
+            background: 'var(--dark)',
+            color: 'var(--fg)',
+            borderRadius: '24px',
+            padding: '30px 32px',
+            width: '420px',
+            maxWidth: '92vw',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '20px', fontWeight: 800, margin: 0 }}>Google Login Required</h3>
+            <p style={{ fontSize: '14px', opacity: 0.8, lineHeight: 1.5, margin: 0 }}>
+              To purchase coins and sync your marketplace upgrades, you must be logged in with a Google account.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+              <Btn onClick={() => router.push('/login?redirectTo=/coins')}>Log in with Google</Btn>
+              <Btn variant="secondary" onClick={() => setShowGoogleLoginPrompt(false)}>Cancel</Btn>
+            </div>
+          </div>
+        </React.Fragment>
+      )}
     </div>
   );
 }
