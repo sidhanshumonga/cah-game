@@ -5,6 +5,33 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-01-27.acacia' as any,
 });
 
+function getBundlePrice(coins: number, currency: string): { amount: number; currency: string } {
+  const c = currency.toLowerCase();
+  
+  if (coins === 500) {
+    if (c === 'inr') return { amount: 19900, currency: 'inr' };
+    if (c === 'gbp') return { amount: 399, currency: 'gbp' };
+    if (c === 'aed') return { amount: 1899, currency: 'aed' };
+    return { amount: 499, currency: 'usd' };
+  }
+  
+  if (coins === 1200) {
+    if (c === 'inr') return { amount: 39900, currency: 'inr' };
+    if (c === 'gbp') return { amount: 799, currency: 'gbp' };
+    if (c === 'aed') return { amount: 3699, currency: 'aed' };
+    return { amount: 999, currency: 'usd' };
+  }
+  
+  if (coins === 3000) {
+    if (c === 'inr') return { amount: 79900, currency: 'inr' };
+    if (c === 'gbp') return { amount: 1599, currency: 'gbp' };
+    if (c === 'aed') return { amount: 7299, currency: 'aed' };
+    return { amount: 1999, currency: 'usd' };
+  }
+
+  return { amount: 499, currency: 'usd' };
+}
+
 export async function POST(req: Request) {
   try {
     const { productId, coins, uid, email, currency } = await req.json();
@@ -16,54 +43,29 @@ export async function POST(req: Request) {
     const origin = req.headers.get('origin') || 'http://localhost:3000';
     const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
     let targetProductId = productId;
-    if (isLocalhost && productId === 'prod_UiU1bLVVTs3WEp') {
-      targetProductId = 'prod_UiUOA82wjWJ8Zg';
-    }
-
-    // 1. Retrieve the product with default price expanded
-    const product = await stripe.products.retrieve(targetProductId, {
-      expand: ['default_price'],
-    });
-    
-    let targetPriceObj = product.default_price as Stripe.Price;
-
-    // 2. If a local currency is requested, try to find a matching price
-    if (currency && currency !== 'usd') {
-      try {
-        const prices = await stripe.prices.list({
-          product: targetProductId,
-          active: true,
-          limit: 20,
-        });
-        const match = prices.data.find(p => p.currency.toLowerCase() === currency.toLowerCase());
-        if (match) {
-          targetPriceObj = match;
-          console.log(`[checkout] Found matching localized price for currency ${currency}: ${match.id}`);
-        } else {
-          console.log(`[checkout] No price matching currency ${currency} found for product ${targetProductId}. Falling back to default price.`);
-        }
-      } catch (priceErr) {
-        console.error('[checkout] Failed to list prices, falling back to default:', priceErr);
+    if (isLocalhost) {
+      if (productId === 'prod_UiU1bLVVTs3WEp' || productId === 'prod_UiU1NqbXoVoF78' || productId === 'prod_UiU2mxisRKNBys') {
+        targetProductId = 'prod_UiUOA82wjWJ8Zg';
       }
     }
 
-    if (!targetPriceObj) {
-      return NextResponse.json({ error: 'Stripe product has no default price configured' }, { status: 400 });
-    }
+    // Get the exact localized price amount and currency corresponding to what we display on the website
+    const bundlePrice = getBundlePrice(Number(coins), currency || 'usd');
 
-    const priceId = targetPriceObj.id;
-    const mode = (targetPriceObj.type === 'recurring' || !!targetPriceObj.recurring) ? 'subscription' : 'payment';
-
-    // 2. Create the Checkout Session
+    // Create the Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price: priceId,
+          price_data: {
+            currency: bundlePrice.currency,
+            product: targetProductId,
+            unit_amount: bundlePrice.amount,
+          },
           quantity: 1,
         },
       ],
-      mode: mode as Stripe.Checkout.SessionCreateParams.Mode,
+      mode: 'payment',
       customer_email: email || undefined,
       metadata: {
         uid,
