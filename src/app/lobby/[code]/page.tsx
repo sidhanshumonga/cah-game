@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useGameContext } from '@/context/GameContext';
-import { Logo, Avatar, Btn, Coin } from '@/components/components';
+import { useGameContext, maxPlayersFor, ownsPack } from '@/context/GameContext';
+import { Logo, Avatar, Btn, Coin, LockIcon } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 import { isFirebaseEnabled } from '@/firebase/config';
 import { buildSeededDeck, getPromptForRound } from '@/utils/deck';
@@ -72,6 +72,7 @@ export default function LobbyPage() {
   }, [code]);
   const [roomStatus, setRoomStatus] = useState<string>('lobby');
   const [roomExists, setRoomExists] = useState<boolean | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
@@ -464,6 +465,16 @@ export default function LobbyPage() {
             </span>
             {settings.family ? <span className="chip">Family-friendly</span> : null}
             {settings.custom ? <span className="chip">Custom cards on</span> : null}
+            {isRealHost && (
+              <button 
+                type="button"
+                className="chip" 
+                style={{ background: 'var(--accent)', color: 'var(--dark)', fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => setSettingsOpen(true)}
+              >
+                ⚙️ Edit Settings
+              </button>
+            )}
           </div>
 
           <div className="lobby-cta">
@@ -515,6 +526,253 @@ export default function LobbyPage() {
           </div>
         </aside>
       </div>
+
+      <EditSettingsModal
+        open={settingsOpen}
+        settings={settings}
+        onClose={() => setSettingsOpen(false)}
+        onSave={async (newSettings) => {
+          const { updateRoom } = await import('@/firebase/firestore');
+          await updateRoom(code, { settings: newSettings });
+          setSettingsOpen(false);
+        }}
+        packs={packs}
+        account={account}
+      />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SETTINGS HELPERS & EDIT MODAL
+// ─────────────────────────────────────────────────────────────────
+function Seg({ options, value, onChange, format }: {
+  options: number[];
+  value: number;
+  onChange: (v: number) => void;
+  format?: (o: number) => string;
+}) {
+  return (
+    <div className="seg">
+      {options.map((o) => (
+        <button
+          key={o}
+          type="button"
+          className={"seg-btn" + (o === value ? " seg-on" : "")}
+          onClick={() => onChange(o)}
+        >
+          {format ? format(o) : o}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      className={"switch" + (on ? " switch-on" : "")}
+      onClick={() => onChange(!on)}
+      role="switch"
+      aria-checked={on}
+    >
+      <span className="switch-knob"></span>
+    </button>
+  );
+}
+
+interface EditSettingsModalProps {
+  open: boolean;
+  settings: any;
+  onClose: () => void;
+  onSave: (newSettings: any) => Promise<void>;
+  packs: any[];
+  account: any;
+}
+
+function EditSettingsModal({ open, settings, onClose, onSave, packs: allPacks, account }: EditSettingsModalProps) {
+  const allowed = maxPlayersFor(account);
+  
+  const [maxPlayers, setMaxPlayers] = useState(settings.maxPlayers);
+  const [scoreLimit, setScoreLimit] = useState(settings.scoreLimit);
+  const [timer, setTimer] = useState(settings.timer);
+  const [packs, setPacks] = useState<string[]>(settings.packs);
+  const [family, setFamily] = useState(settings.family);
+  const [packQuery, setPackQuery] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync state if settings change in real-time
+  useEffect(() => {
+    if (open) {
+      setMaxPlayers(settings.maxPlayers);
+      setScoreLimit(settings.scoreLimit);
+      setTimer(settings.timer);
+      setPacks(settings.packs);
+      setFamily(settings.family);
+    }
+  }, [open, settings]);
+
+  // Adjust packs if family-friendly mode is toggled
+  useEffect(() => {
+    if (family) {
+      setPacks((prev) => prev.filter(id => {
+        const p = allPacks.find(pkg => pkg.id === id);
+        return !p || p.familyFriendly !== false;
+      }));
+    }
+  }, [family, allPacks]);
+
+  if (!open) return null;
+
+  const togglePack = (pId: string) => {
+    setPacks((s) => {
+      if (s.includes(pId)) return s.filter((x) => x !== pId);
+      if (s.length >= 8) return s; // MAX_PACKS = 8
+      return [...s, pId];
+    });
+  };
+
+  const sortedFilteredPacks = allPacks
+    .filter((p) => p.name.toLowerCase().includes(packQuery.trim().toLowerCase()))
+    .sort((a, b) => {
+      const ownA = ownsPack(account, a);
+      const ownB = ownsPack(account, b);
+      if (ownA && !ownB) return -1;
+      if (!ownA && ownB) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+  const handleSaveClick = async () => {
+    setIsSaving(true);
+    try {
+      await onSave({
+        ...settings,
+        maxPlayers,
+        scoreLimit,
+        timer,
+        packs,
+        family,
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <React.Fragment>
+      <div className="scrim scrim-open" style={{ zIndex: 110 }} onClick={onClose}></div>
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 111,
+        background: 'var(--paper)',
+        color: 'var(--paper-fg)',
+        borderRadius: '24px',
+        padding: '30px 32px',
+        width: '760px',
+        maxWidth: '92vw',
+        maxHeight: '85vh',
+        boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        overflowY: 'auto'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '22px', fontWeight: 800, margin: 0 }}>Edit Room Settings</h3>
+          <button className="iconbtn" onClick={onClose} aria-label="Close" style={{ fontSize: '18px' }}>✕</button>
+        </div>
+
+        <div className="create-grid" style={{ margin: 0, gap: '24px' }}>
+          {/* Basics Column */}
+          <section className="create-col">
+            <h4 className="create-sec" style={{ marginTop: 0 }}>Basics</h4>
+            <div className="frow">
+              <label className="flabel">Max players <span className="flabel-val">{maxPlayers}</span></label>
+              <input
+                className="range"
+                type="range" min="3" max={allowed} step="1" value={maxPlayers}
+                onChange={(e) => setMaxPlayers(+e.target.value)}
+              />
+            </div>
+            <div className="frow">
+              <label className="flabel">Points to win</label>
+              <Seg options={[3, 5, 7]} value={scoreLimit} onChange={setScoreLimit} />
+            </div>
+            <div className="frow">
+              <label className="flabel">Turn timer</label>
+              <Seg options={[30, 45, 60]} value={timer} onChange={setTimer} format={(o) => o + "s"} />
+            </div>
+            <div className="frow frow-inline" style={{ marginBottom: '12px' }}>
+              <label className="flabel">Family-friendly mode</label>
+              <Switch on={family} onChange={setFamily} />
+            </div>
+          </section>
+
+          {/* Card Packs Column */}
+          <section className="create-col">
+            <h4 className="create-sec" style={{ marginTop: 0 }}>Card Packs <span className="flabel-val">{packs.length} selected</span></h4>
+            <div className="packbox" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="packbox-tools" style={{ padding: '8px' }}>
+                <input
+                  className="input packsearch"
+                  placeholder="Search packs..."
+                  value={packQuery}
+                  onChange={(e) => setPackQuery(e.target.value)}
+                  style={{ height: '36px', fontSize: '13px' }}
+                />
+              </div>
+              <div className="packlist" style={{ maxHeight: '200px', padding: '8px' }}>
+                {sortedFilteredPacks.map((p) => {
+                  const owned = ownsPack(account, p);
+                  const on = packs.includes(p.id);
+                  const adultLocked = family && p.familyFriendly === false;
+                  
+                  if (!owned || adultLocked) {
+                    return (
+                      <button
+                        key={p.id}
+                        className="packchip packchip-locked"
+                        style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                        disabled={true}
+                      >
+                        <LockIcon size={11} /> {p.name}
+                        {adultLocked && (
+                          <span className="packchip-price" style={{ color: 'var(--red)' }}>adult content</span>
+                        )}
+                      </button>
+                    );
+                  }
+                  
+                  return (
+                    <button
+                      key={p.id}
+                      className={"packchip" + (on ? " packchip-on" : "")}
+                      disabled={!on && packs.length >= 8}
+                      onClick={() => togglePack(p.id)}
+                    >
+                      {p.name}<span className="packchip-count">{p.cards}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
+          <Btn variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Btn>
+          <Btn variant="accent" onClick={handleSaveClick} disabled={isSaving || packs.length === 0}>
+            {isSaving ? "Saving..." : "Save Settings"}
+          </Btn>
+        </div>
+      </div>
+    </React.Fragment>
   );
 }
