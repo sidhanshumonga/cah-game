@@ -159,6 +159,8 @@ export default function EndPage() {
           ))}
         </div>
 
+        <RateRound />
+
         <div className="end-actions">
           {isHost ? (
             <Btn big={true} onClick={handleReplay}>Play again</Btn>
@@ -168,6 +170,94 @@ export default function EndPage() {
           <Btn big={true} variant="secondary" onClick={handleHome}>Back to start</Btn>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// END OF GAME RATING COMPONENT
+// ─────────────────────────────────────────────────────────────────
+function RateRound() {
+  const { endData, account } = useGameContext();
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [note, setNote] = useState("");
+  const [sent, setSent] = useState(false);
+  const labels = ["", "Meh", "Okay", "Good", "Great", "Hilarious"];
+  const shown = hover || rating;
+
+  async function submit(rVal: number, nVal: string) {
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating: rVal,
+          comment: nVal.trim(),
+          uid: account?.uid || null,
+          email: account?.email || null,
+          code: endData?.code || null,
+          type: 'game-end',
+        })
+      });
+      if (response.ok) {
+        setSent(true);
+      } else {
+        console.error('Failed to submit end-of-game rating');
+      }
+    } catch (err) {
+      console.error('Rating submit error:', err);
+    }
+  }
+
+  const handleStarClick = (num: number) => {
+    setRating(num);
+  };
+
+  const handleSendClick = () => {
+    submit(rating, note);
+  };
+
+  if (sent) {
+    return (
+      <div className="rate rate-done">
+        <span className="rate-check">✓</span>
+        <span className="rate-thanks">Thanks for the feedback!</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rate">
+      <span className="rate-q">How was that game?</span>
+      <div className="rate-stars" onMouseLeave={() => setHover(0)}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={"rate-star" + (n <= shown ? " rate-star-on" : "")}
+            onMouseEnter={() => setHover(n)}
+            onClick={() => handleStarClick(n)}
+            aria-label={n + " star" + (n > 1 ? "s" : "")}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <span className="rate-label">{labels[shown] || "\u00A0"}</span>
+      {rating ? (
+        <div className="rate-followup">
+          <input
+            className="input rate-input"
+            placeholder="Anything to add? (optional)"
+            value={note}
+            maxLength={120}
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSendClick(); }}
+          />
+          <Btn onClick={handleSendClick}>Send</Btn>
+        </div>
+      ) : null}
     </div>
   );
 }

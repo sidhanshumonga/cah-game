@@ -7,6 +7,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Feedback: anyone can submit feedback
+    match /feedback/{feedbackId} {
+      allow create: if true;
+    }
+
     // Packages: anyone can read; only the admin can write
     match /packages/{packId} {
       allow read: if true;
