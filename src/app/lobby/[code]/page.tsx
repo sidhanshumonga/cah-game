@@ -188,18 +188,7 @@ export default function LobbyPage() {
     }
   }
 
-  // ── Leave room on unmount (multiplayer) ───────────────────────────────────
-  useEffect(() => {
-    if (!isMultiplayer || !account) return;
-    return () => {
-      if (statusRef.current !== 'playing') {
-        const uid = account.uid || account.email;
-        import('@/firebase/firestore').then(({ leaveRoom }) => {
-          leaveRoom(code, uid).catch(() => {});
-        });
-      }
-    };
-  }, [isMultiplayer, code, account]);
+
 
   // ── Connection state tracking (multiplayer) ───────────────────────────────
   useEffect(() => {
