@@ -6,6 +6,7 @@ import { useGameContext } from '@/context/GameContext';
 import { Logo, Avatar, Btn, Coin } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 import { isFirebaseEnabled } from '@/firebase/config';
+import { buildSeededDeck, getPromptForRound } from '@/utils/deck';
 
 interface ChatMessage {
   id: string;
@@ -267,9 +268,8 @@ export default function LobbyPage() {
         const players = currentPlayers.map(p => p.uid);
         const scores: Record<string, number> = {};
         currentPlayers.forEach(p => { scores[p.uid] = 0; });
-        const cardPools = getCardsForPacks(settings.packs, settings.family);
-        const prompts = cardPools.prompts;
-        const prompt = prompts[Math.floor(Math.random() * prompts.length)] || "Cards Against Humanity round!";
+        const deck = buildSeededDeck(settings.packs, packs, settings.family, code);
+        const prompt = getPromptForRound(deck.prompts, code, 1);
         const nonHost = players.filter(uid => uid !== (account?.uid || account?.email));
         const judgeOrder = [players[0], ...nonHost];
         await fsStartGame(code, 1, prompt, judgeOrder[0], judgeOrder, scores);

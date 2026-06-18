@@ -583,6 +583,9 @@ button.flipwrap:hover { transform: translateY(-8px); }
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 100px;
+  align-self: start;
 }
 
 .game-center-content {

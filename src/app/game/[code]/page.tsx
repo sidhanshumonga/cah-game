@@ -16,9 +16,11 @@ import {
   ReactionBar,
   ReactionLayer,
   CrownIcon,
-  spawnReaction
+  spawnReaction,
+  SideScores
 } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
+import { buildSeededDeck, getPromptForRound, seededShuffle } from '@/utils/deck';
 import { isFirebaseEnabled } from '@/firebase/config';
 
 function shuffleArr<T>(a: T[]): T[] {
@@ -38,75 +40,7 @@ function makeDraw<T>(arr: T[]): () => T {
   };
 }
 
-function seededRandom(seed: string) {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
-  }
-  return function() {
-    h = Math.imul(1664525, h) + 1013904223 | 0;
-    return (h >>> 0) / 4294967296;
-  };
-}
-
-function seededShuffle<T>(arr: T[], seed: string): T[] {
-  const rand = seededRandom(seed);
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    const temp = copy[i];
-    copy[i] = copy[j];
-    copy[j] = temp;
-  }
-  return copy;
-}
-
-function buildSeededDeck(
-  selectedPackIds: string[],
-  packs: any[],
-  family: boolean,
-  seed: string
-) {
-  const activePacks = packs.filter(p => selectedPackIds.includes(p.id) && !(family && p.familyFriendly === false));
-  
-  // Seeded shuffle each pack's prompts/answers separately
-  const promptsByPack = activePacks.map(p => seededShuffle<string>(p.prompts || [], `${seed}-prompts-${p.id}`));
-  const answersByPack = activePacks.map(p => seededShuffle<string>(p.answers || [], `${seed}-answers-${p.id}`));
-
-  const promptsPool: string[] = [];
-  const answersPool: string[] = [];
-
-  let hasMorePrompts = true;
-  let promptPointers = promptsByPack.map(() => 0);
-  while (hasMorePrompts) {
-    hasMorePrompts = false;
-    for (let i = 0; i < promptsByPack.length; i++) {
-      if (promptPointers[i] < promptsByPack[i].length) {
-        promptsPool.push(promptsByPack[i][promptPointers[i]]);
-        promptPointers[i]++;
-        hasMorePrompts = true;
-      }
-    }
-  }
-
-  let hasMoreAnswers = true;
-  let answerPointers = answersByPack.map(() => 0);
-  while (hasMoreAnswers) {
-    hasMoreAnswers = false;
-    for (let i = 0; i < answersByPack.length; i++) {
-      if (answerPointers[i] < answersByPack[i].length) {
-        answersPool.push(answersByPack[i][answerPointers[i]]);
-        answerPointers[i]++;
-        hasMoreAnswers = true;
-      }
-    }
-  }
-
-  if (promptsPool.length === 0) promptsPool.push("Draw a card.");
-  if (answersPool.length === 0) answersPool.push("A card.");
-
-  return { prompts: promptsPool, answers: answersPool };
-}
+// Seeded deck functions imported from '@/utils/deck'
 
 function makeDrawSeeded<T>(arr: T[], seed: string, playerIndex: number, totalSlots: number = 31): () => T {
   const playerPool = arr.filter((_, idx) => idx % totalSlots === playerIndex);
@@ -143,7 +77,6 @@ function MultiplayerGame({ code }: { code: string }) {
 
   // Local per-player private hand (not in Firestore)
   const drawA = useRef<() => string>(null!);
-  const drawP = useRef<() => string>(null!);
 
   const playerIndex = useMemo(() => {
     if (!roomPlayers.length) return -1;
@@ -157,7 +90,6 @@ function MultiplayerGame({ code }: { code: string }) {
     if (packs && packs.length > 0 && playerIndex !== -1) {
       const deck = buildSeededDeck(settings.packs, packs, settings.family, code);
       drawA.current = makeDrawSeeded(deck.answers, code, playerIndex, 31);
-      drawP.current = makeDrawSeeded(deck.prompts, code, playerIndex, 31);
     }
   }, [packsKey, packs, playerIndex, code, settings.packs, settings.family]);
 
@@ -283,7 +215,7 @@ function MultiplayerGame({ code }: { code: string }) {
 
   // Deal hand at start of each new round or restore from localStorage on page reload
   useEffect(() => {
-    if (!gameState) return;
+    if (!gameState || playerIndex === -1 || !drawA.current) return;
     const round = gameState.round || 1;
     if (round !== lastRoundRef.current) {
       lastRoundRef.current = round;
@@ -296,9 +228,33 @@ function MultiplayerGame({ code }: { code: string }) {
         const saved = localStorage.getItem(storageKey);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed && parsed.round === round && Array.isArray(parsed.hand)) {
-            loadedHand = parsed.hand;
-            loadedSwaps = parsed.swapsUsed || 0;
+          if (parsed && Array.isArray(parsed.hand)) {
+            if (parsed.round === round) {
+              loadedHand = parsed.hand;
+              loadedSwaps = parsed.swapsUsed || 0;
+            } else {
+              // Transitioning from a previous round - carry over the hand and remove only the submitted card
+              let nextHand = [...parsed.hand];
+              if (parsed.submittedCard) {
+                const idx = nextHand.indexOf(parsed.submittedCard);
+                if (idx !== -1) {
+                  nextHand.splice(idx, 1);
+                }
+              }
+              while (nextHand.length < 7) {
+                nextHand.push(drawA.current?.() || "");
+              }
+              loadedHand = nextHand;
+              loadedSwaps = parsed.swapsUsed || 0;
+              
+              // Save the transitioned hand
+              localStorage.setItem(storageKey, JSON.stringify({
+                round,
+                hand: nextHand,
+                swapsUsed: loadedSwaps,
+                submittedCard: null
+              }));
+            }
           }
         }
       } catch (e) {
@@ -313,7 +269,7 @@ function MultiplayerGame({ code }: { code: string }) {
         setHand(newHand);
         setSwapsUsed(0);
         try {
-          localStorage.setItem(storageKey, JSON.stringify({ round, hand: newHand, swapsUsed: 0 }));
+          localStorage.setItem(storageKey, JSON.stringify({ round, hand: newHand, swapsUsed: 0, submittedCard: null }));
         } catch (e) {
           console.error("Failed to save game session", e);
         }
@@ -325,7 +281,7 @@ function MultiplayerGame({ code }: { code: string }) {
       setSwapMode(false);
       setSwapPicks([]);
     }
-  }, [gameState?.round, code, myUid]);
+  }, [gameState?.round, code, myUid, playerIndex, packs]);
 
   // Sync submission state from Firestore gameState on reload / update
   useEffect(() => {
@@ -360,6 +316,20 @@ function MultiplayerGame({ code }: { code: string }) {
     setMyPick(text);
     setSwapMode(false);
     setSwapPicks([]);
+    
+    // Save submitted card to localStorage session
+    try {
+      const storageKey = `cah-game-session-${code}-${myUid}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        parsed.submittedCard = text;
+        localStorage.setItem(storageKey, JSON.stringify(parsed));
+      }
+    } catch (e) {
+      console.error("Failed to save submitted card on submit", e);
+    }
+
     const { submitCard } = await import('@/firebase/firestore');
     await submitCard(code, myUid, myName, text);
   }, [code, myUid, myName]);
@@ -498,7 +468,10 @@ function MultiplayerGame({ code }: { code: string }) {
       const nextRound = (gameState.round || 1) + 1;
       const nextJudgeIdx = (nextRound - 1) % judgeOrder.length;
       const nextJudgeUid = judgeOrder[nextJudgeIdx];
-      const prompt = drawP.current?.() || "Cards Against Humanity round!";
+      
+      const deck = buildSeededDeck(settings.packs, packs, settings.family, code);
+      const prompt = getPromptForRound(deck.prompts, code, nextRound);
+
       await updateGameState(code, {
         round: nextRound,
         prompt,
@@ -509,7 +482,7 @@ function MultiplayerGame({ code }: { code: string }) {
         winnerUid: null,
       });
     }
-  }, [gameOver, isHost, gameState, roomPlayers, code, players, handleEnd]);
+  }, [gameOver, isHost, gameState, roomPlayers, code, players, handleEnd, settings.packs, settings.family, packs]);
 
   function toggleSwapPick(i: number) {
     setSwapPicks((s) => (s.includes(i) ? s.filter((x) => x !== i) : s.length < maxSwap ? [...s, i] : s));
@@ -612,8 +585,17 @@ function MultiplayerGame({ code }: { code: string }) {
       <ScorePanel open={scoresOpen} onClose={() => setScoresOpen(false)} players={players} limit={settings.scoreLimit} />
       
       <div className="game-layout-container">
+        {/* Left desktop leaderboard sidebar */}
+        <aside className="game-sidebar-left">
+          <SideScores players={players} judgeId={judgeUid} limit={settings.scoreLimit} />
+        </aside>
+
         {/* Center content column */}
         <div className="game-center-content">
+          {/* Mobile scoreboard, visible only on small screens (< 1180px) */}
+          <div className="game-mobile-scores">
+            <SideScores players={players} judgeId={judgeUid} limit={settings.scoreLimit} />
+          </div>
 
           {/* PICK — not judge */}
           {phase === "pick" && !youAreJudge ? (
