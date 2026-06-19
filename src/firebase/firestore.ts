@@ -334,6 +334,7 @@ export async function startGame(
     phase: 'pick',
     judgeUid,
     judgeOrder,
+    originalPlayers: judgeOrder, // STABLE LIST FOR CARD DRAW POOLS
     submissions: [],
     winnerUid: null,
     scores,

@@ -77,21 +77,45 @@ function MultiplayerGame({ code }: { code: string }) {
 
   // Local per-player private hand (not in Firestore)
   const drawA = useRef<() => string>(null!);
+  const drawCardRef = useRef<(seen: string[]) => string>(null!);
+  const [deckReady, setDeckReady] = useState(false);
 
   const playerIndex = useMemo(() => {
+    if (gameState && Array.isArray(gameState.originalPlayers)) {
+      return gameState.originalPlayers.indexOf(myUid);
+    }
     if (!roomPlayers.length) return -1;
     const sorted = [...roomPlayers].sort((a, b) => a.uid.localeCompare(b.uid));
     return sorted.findIndex(p => p.uid === myUid);
-  }, [roomPlayers, myUid]);
+  }, [gameState?.originalPlayers, roomPlayers, myUid]);
+
+  const totalSlots = useMemo(() => {
+    if (gameState && Array.isArray(gameState.originalPlayers)) {
+      return Math.max(1, gameState.originalPlayers.length);
+    }
+    return 12; // Fallback to safe pool-division size
+  }, [gameState?.originalPlayers]);
 
   const packsKey = settings.packs.join(",");
 
   useEffect(() => {
     if (packs && packs.length > 0 && playerIndex !== -1) {
       const deck = buildSeededDeck(settings.packs, packs, settings.family, code);
-      drawA.current = makeDrawSeeded(deck.answers, code, playerIndex, 31);
+      drawA.current = makeDrawSeeded(deck.answers, code, playerIndex, totalSlots);
+      
+      drawCardRef.current = (seen: string[]) => {
+        let card = drawA.current();
+        let attempts = 0;
+        while (seen.includes(card) && attempts < 100) {
+          card = drawA.current();
+          attempts++;
+        }
+        return card;
+      };
+      
+      setDeckReady(true);
     }
-  }, [packsKey, packs, playerIndex, code, settings.packs, settings.family]);
+  }, [packsKey, packs, playerIndex, totalSlots, code, settings.packs, settings.family]);
 
   const [hand, setHand] = useState<string[]>([]);
   const [myPick, setMyPick] = useState<string | null>(null);
@@ -215,7 +239,7 @@ function MultiplayerGame({ code }: { code: string }) {
 
   // Deal hand at start of each new round or restore from localStorage on page reload
   useEffect(() => {
-    if (!gameState || playerIndex === -1 || !drawA.current) return;
+    if (!gameState || playerIndex === -1 || !deckReady) return;
     const round = gameState.round || 1;
     if (round !== lastRoundRef.current) {
       lastRoundRef.current = round;
@@ -229,9 +253,14 @@ function MultiplayerGame({ code }: { code: string }) {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && Array.isArray(parsed.hand)) {
+            let seen = Array.isArray(parsed.seenCards) ? parsed.seenCards : [...parsed.hand];
+            
             if (parsed.round === round) {
               loadedHand = parsed.hand;
               loadedSwaps = parsed.swapsUsed || 0;
+            } else if (round === 1) {
+              // This is a new game / replay! Clear hand and seen cards.
+              loadedHand = null;
             } else {
               // Transitioning from a previous round - carry over the hand and remove only the submitted card
               let nextHand = [...parsed.hand];
@@ -242,7 +271,11 @@ function MultiplayerGame({ code }: { code: string }) {
                 }
               }
               while (nextHand.length < 7) {
-                nextHand.push(drawA.current?.() || "");
+                const newCard = drawCardRef.current?.(seen) || "";
+                nextHand.push(newCard);
+                if (newCard && !seen.includes(newCard)) {
+                  seen.push(newCard);
+                }
               }
               loadedHand = nextHand;
               loadedSwaps = parsed.swapsUsed || 0;
@@ -252,7 +285,8 @@ function MultiplayerGame({ code }: { code: string }) {
                 round,
                 hand: nextHand,
                 swapsUsed: loadedSwaps,
-                submittedCard: null
+                submittedCard: null,
+                seenCards: seen
               }));
             }
           }
@@ -265,11 +299,19 @@ function MultiplayerGame({ code }: { code: string }) {
         setHand(loadedHand);
         setSwapsUsed(loadedSwaps);
       } else {
-        const newHand = Array.from({ length: 7 }, () => drawA.current?.() || "");
+        let seen: string[] = [];
+        const newHand: string[] = [];
+        for (let i = 0; i < 7; i++) {
+          const card = drawCardRef.current?.(seen) || "";
+          newHand.push(card);
+          if (card && !seen.includes(card)) {
+            seen.push(card);
+          }
+        }
         setHand(newHand);
         setSwapsUsed(0);
         try {
-          localStorage.setItem(storageKey, JSON.stringify({ round, hand: newHand, swapsUsed: 0, submittedCard: null }));
+          localStorage.setItem(storageKey, JSON.stringify({ round, hand: newHand, swapsUsed: 0, submittedCard: null, seenCards: seen }));
         } catch (e) {
           console.error("Failed to save game session", e);
         }
@@ -281,7 +323,7 @@ function MultiplayerGame({ code }: { code: string }) {
       setSwapMode(false);
       setSwapPicks([]);
     }
-  }, [gameState?.round, code, myUid, playerIndex, packs]);
+  }, [gameState?.round, code, myUid, playerIndex, deckReady]);
 
   // Sync submission state from Firestore gameState on reload / update
   useEffect(() => {
@@ -490,7 +532,38 @@ function MultiplayerGame({ code }: { code: string }) {
 
   function doSwap() {
     if (!swapPicks.length) return;
-    const newHand = hand.map((c, i) => (swapPicks.includes(i) ? drawA.current?.() || "" : c));
+    
+    const storageKey = `cah-game-session-${code}-${myUid}`;
+    const round = gameState?.round || 1;
+    let seen: string[] = [];
+    
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.seenCards)) {
+          seen = parsed.seenCards;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load seenCards on swap", e);
+    }
+    
+    if (seen.length === 0) {
+      seen = [...hand];
+    }
+    
+    const newHand = hand.map((c, i) => {
+      if (swapPicks.includes(i)) {
+        const newCard = drawCardRef.current?.(seen) || "";
+        if (newCard && !seen.includes(newCard)) {
+          seen.push(newCard);
+        }
+        return newCard;
+      }
+      return c;
+    });
+    
     const newSwaps = swapsUsed + 1;
     setHand(newHand);
     setSwapsUsed(newSwaps);
@@ -499,9 +572,13 @@ function MultiplayerGame({ code }: { code: string }) {
     
     // Persist updated hand/swaps to localStorage
     try {
-      const storageKey = `cah-game-session-${code}-${myUid}`;
-      const round = gameState?.round || 1;
-      localStorage.setItem(storageKey, JSON.stringify({ round, hand: newHand, swapsUsed: newSwaps }));
+      localStorage.setItem(storageKey, JSON.stringify({ 
+        round, 
+        hand: newHand, 
+        swapsUsed: newSwaps, 
+        submittedCard: null,
+        seenCards: seen 
+      }));
     } catch (e) {
       console.error("Failed to save game session on swap", e);
     }
