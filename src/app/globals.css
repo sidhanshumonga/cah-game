@@ -1706,3 +1706,50 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
 .rate-check { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--dark);
   font-weight: 900; font-size: 14px; animation: popIn calc(var(--m) * 0.35s) cubic-bezier(.2,1.6,.4,1) both; }
 .rate-thanks { font-family: var(--font-d); font-weight: 700; font-size: 16px; }
+
+/* ---------- Prominent Judge & Winner Reveal Highlights ---------- */
+.topbar-judge-you {
+  background: linear-gradient(135deg, #FFC93C, #FF9F1C) !important;
+  color: #141414 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 10px rgba(255, 201, 60, 0.4);
+}
+.judge-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(255, 201, 60, 0.15), rgba(255, 159, 28, 0.15)) !important;
+  border: 1.5px solid rgba(255, 201, 60, 0.4) !important;
+  box-shadow: 0 4px 20px rgba(255, 201, 60, 0.1);
+  border-radius: 16px;
+  padding: 16px 24px;
+  font-weight: 700;
+  font-size: 16px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  animation: pulseGold 2s infinite ease-in-out;
+  color: #FFC93C;
+}
+@keyframes pulseGold {
+  0% { box-shadow: 0 4px 20px rgba(255, 201, 60, 0.1); border-color: rgba(255, 201, 60, 0.4); }
+  50% { box-shadow: 0 4px 25px rgba(255, 201, 60, 0.25); border-color: rgba(255, 201, 60, 0.75); }
+  100% { box-shadow: 0 4px 20px rgba(255, 201, 60, 0.1); border-color: rgba(255, 201, 60, 0.4); }
+}
+.text-glow-gold {
+  color: #FFC93C;
+  text-shadow: 0 0 10px rgba(255, 201, 60, 0.3);
+}
+.acard-winner {
+  outline: 3px solid #FFC93C !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 20px rgba(255, 201, 60, 0.4);
+  transform: scale(1.05);
+  z-index: 2;
+}
+.reveal-card-wrapper {
+  transition: transform 0.2s ease;
+}
+.reveal-card-wrapper:hover {
+  transform: translateY(-2px);
+}

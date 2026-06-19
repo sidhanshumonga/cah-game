@@ -380,7 +380,7 @@ export function TopBar({ code, round, judge, you, limit, onScores, onChatToggle,
       <div className="topbar-mid">
         {round ? <span className="topbar-round">Round {round}</span> : null}
         {judge ? (
-          <span className="topbar-judge">
+          <span className={`topbar-judge${judge.isYou ? ' topbar-judge-you' : ''}`}>
             <Avatar player={judge} size={22} />
             <span className="topbar-judge-text">{judge.isYou ? "You are" : judge.name + " is"} judging</span>
           </span>

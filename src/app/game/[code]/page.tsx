@@ -783,7 +783,9 @@ function MultiplayerGame({ code }: { code: string }) {
               <div className="stage stage-judging">
                 <PromptCard text={prompt} small={true} className="stage-prompt" />
                 <h2 className="judging-title">
-                  {youAreJudge ? "Pick the funniest answer" : (
+                  {youAreJudge ? (
+                    <span className="text-glow-gold">👑 Pick the funniest answer</span>
+                  ) : (
                     <React.Fragment>{judge.name} is deciding<span className="dots"><i>.</i><i>.</i><i>.</i></span></React.Fragment>
                   )}
                 </h2>
@@ -820,9 +822,26 @@ function MultiplayerGame({ code }: { code: string }) {
               ) : null}
               <PromptCard text={prompt} fill={winnerSub ? winnerSub.text : ""} className="reveal-prompt" />
               <div className="reveal-others">
-                {subs.filter((s: any) => s.uid !== gameState?.winnerUid).map((s: any) => (
-                  <AnswerCard key={s.uid} text={s.text} small={true} dimmed={true} />
-                ))}
+                {subs.map((s: any) => {
+                  const isWinner = s.uid === gameState?.winnerUid;
+                  const submitter = roomPlayers.find(p => p.uid === s.uid) || { name: s.name, color: '#ccc' };
+                  return (
+                    <div key={s.uid} className="reveal-card-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                      <AnswerCard
+                        text={s.text}
+                        small={true}
+                        dimmed={!isWinner && gameState?.winnerUid !== 'none'}
+                        winner={isWinner}
+                      />
+                      <div className="reveal-card-submitter" style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: isWinner ? 1 : 0.6 }}>
+                        <Avatar player={submitter} size={16} />
+                        <span style={{ fontSize: '11px', fontWeight: isWinner ? 700 : 500, color: isWinner ? '#FFC93C' : 'inherit' }}>
+                          {submitter.name || s.name}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <div className="reveal-foot">
                 <ReactionBar onReact={handleSendReaction} />
