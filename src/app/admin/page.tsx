@@ -94,9 +94,11 @@ export default function AdminPage() {
         if (!isSubscribed) return;
         Promise.all([getPurchases(), getAllUsers()]).then(([purchRes, userRes]) => {
           if (!isSubscribed) return;
-          purchRes.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
-          setPurchases(purchRes);
-          setUsers(userRes);
+          const safePurch = Array.isArray(purchRes) ? purchRes : [];
+          const safeUsers = Array.isArray(userRes) ? userRes : [];
+          safePurch.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+          setPurchases(safePurch);
+          setUsers(safeUsers);
         }).catch(err => console.error("fetchAnalytics failed", err));
       });
     };
@@ -124,18 +126,24 @@ export default function AdminPage() {
   const adminKeys = useMemo(() => {
     const uids = new Set<string>();
     const emails = new Set<string>(["sidhanshumonga28@gmail.com"]);
-    users.forEach(u => {
-      if (u.admin) {
-        if (u.uid) uids.add(u.uid);
-        if (u.email) emails.add(u.email.toLowerCase());
-      }
-    });
+    if (Array.isArray(users)) {
+      users.forEach(u => {
+        if (u && u.admin) {
+          if (u.uid) uids.add(u.uid);
+          if (u.email && typeof u.email === 'string') {
+            emails.add(u.email.toLowerCase());
+          }
+        }
+      });
+    }
     return { uids, emails };
   }, [users]);
 
   const filteredPurchases = useMemo(() => {
+    if (!Array.isArray(purchases)) return [];
     return purchases.filter(p => {
-      const emailLower = p.userEmail ? p.userEmail.toLowerCase() : "";
+      if (!p) return false;
+      const emailLower = p.userEmail && typeof p.userEmail === 'string' ? p.userEmail.toLowerCase() : "";
       const isFromAdmin = adminKeys.uids.has(p.userId) || adminKeys.emails.has(emailLower);
       return !isFromAdmin;
     });
@@ -149,17 +157,20 @@ export default function AdminPage() {
     let packsSpentCount = 0;
     let upgradesSpentCount = 0;
 
-    filteredPurchases.forEach((p) => {
-      if (p.type === 'top-up') {
-        coinsBought += p.coinsAwarded || 0;
-        if (p.currency === 'USD') usdRevenue += p.cost || 0;
-        if (p.currency === 'INR') inrRevenue += p.cost || 0;
-      } else if (p.type === 'spend') {
-        coinsSpent += p.cost || 0;
-        if (p.itemType === 'pack') packsSpentCount++;
-        if (p.itemType === 'upgrade') upgradesSpentCount++;
-      }
-    });
+    if (Array.isArray(filteredPurchases)) {
+      filteredPurchases.forEach((p) => {
+        if (!p) return;
+        if (p.type === 'top-up') {
+          coinsBought += p.coinsAwarded || 0;
+          if (p.currency === 'USD') usdRevenue += p.cost || 0;
+          if (p.currency === 'INR') inrRevenue += p.cost || 0;
+        } else if (p.type === 'spend') {
+          coinsSpent += p.cost || 0;
+          if (p.itemType === 'pack') packsSpentCount++;
+          if (p.itemType === 'upgrade') upgradesSpentCount++;
+        }
+      });
+    }
 
     return { usdRevenue, inrRevenue, coinsBought, coinsSpent, packsSpentCount, upgradesSpentCount };
   }, [filteredPurchases]);
