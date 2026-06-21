@@ -36,6 +36,17 @@ export async function getUserProfile(uid: string): Promise<any | null> {
   }
 }
 
+export async function getAllUsers(): Promise<any[]> {
+  if (!db) return [];
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    return snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+  } catch (e) {
+    console.error('getAllUsers failed', e);
+    return [];
+  }
+}
+
 export async function setUserProfile(uid: string, data: any): Promise<void> {
   if (!db) return;
   try {

@@ -68,6 +68,7 @@ export default function AdminPage() {
   const [isSubmittingBE, setIsSubmittingBE] = useState(false);
 
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationLog, setMigrationLog] = useState<string | null>(null);
 
@@ -81,7 +82,7 @@ export default function AdminPage() {
     return () => { if (unsub) unsub(); };
   }, [isHydrated]);
 
-  // Load purchases in real-time
+  // Load purchases & users in real-time
   useEffect(() => {
     if (!isHydrated || !account || !account.admin) return;
     
@@ -89,13 +90,14 @@ export default function AdminPage() {
     let unsubAuth: (() => void) | null = null;
 
     const fetchAnalytics = () => {
-      import('@/firebase/firestore').then(({ getPurchases }) => {
+      import('@/firebase/firestore').then(({ getPurchases, getAllUsers }) => {
         if (!isSubscribed) return;
-        getPurchases().then(res => {
+        Promise.all([getPurchases(), getAllUsers()]).then(([purchRes, userRes]) => {
           if (!isSubscribed) return;
-          res.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
-          setPurchases(res);
-        }).catch(err => console.error("getPurchases failed", err));
+          purchRes.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+          setPurchases(purchRes);
+          setUsers(userRes);
+        }).catch(err => console.error("fetchAnalytics failed", err));
       });
     };
 
@@ -119,6 +121,26 @@ export default function AdminPage() {
     };
   }, [isHydrated, account, importSuccess, migrationLog]);
 
+  const adminKeys = useMemo(() => {
+    const uids = new Set<string>();
+    const emails = new Set<string>(["sidhanshumonga28@gmail.com"]);
+    users.forEach(u => {
+      if (u.admin) {
+        if (u.uid) uids.add(u.uid);
+        if (u.email) emails.add(u.email.toLowerCase());
+      }
+    });
+    return { uids, emails };
+  }, [users]);
+
+  const filteredPurchases = useMemo(() => {
+    return purchases.filter(p => {
+      const emailLower = p.userEmail ? p.userEmail.toLowerCase() : "";
+      const isFromAdmin = adminKeys.uids.has(p.userId) || adminKeys.emails.has(emailLower);
+      return !isFromAdmin;
+    });
+  }, [purchases, adminKeys]);
+
   const stats = useMemo(() => {
     let usdRevenue = 0;
     let inrRevenue = 0;
@@ -127,7 +149,7 @@ export default function AdminPage() {
     let packsSpentCount = 0;
     let upgradesSpentCount = 0;
 
-    purchases.forEach((p) => {
+    filteredPurchases.forEach((p) => {
       if (p.type === 'top-up') {
         coinsBought += p.coinsAwarded || 0;
         if (p.currency === 'USD') usdRevenue += p.cost || 0;
@@ -140,7 +162,7 @@ export default function AdminPage() {
     });
 
     return { usdRevenue, inrRevenue, coinsBought, coinsSpent, packsSpentCount, upgradesSpentCount };
-  }, [purchases]);
+  }, [filteredPurchases]);
 
   const handleMigratePurchases = async () => {
     setIsMigrating(true);
@@ -477,10 +499,10 @@ export default function AdminPage() {
               </div>
 
               <div className="catalog-list-wrap">
-                <h4 className="catalog-list-title">Recent Transactions ({purchases.length}):</h4>
+                <h4 className="catalog-list-title">Recent Transactions ({filteredPurchases.length}):</h4>
                 <div className="catalog-list" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                  {purchases.length === 0 && <p className="muted" style={{ padding: '8px 0' }}>No purchase records found.</p>}
-                  {purchases.map((p, idx) => (
+                  {filteredPurchases.length === 0 && <p className="muted" style={{ padding: '8px 0' }}>No purchase records found.</p>}
+                  {filteredPurchases.map((p, idx) => (
                     <div key={p.id || idx} className="catalog-item" style={{ padding: '8px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <div className="catalog-item-main" style={{ fontSize: '13px' }}>
                         <span className="catalog-item-name" style={{ fontWeight: 600 }}>{p.itemName}</span>
