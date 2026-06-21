@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameContext, Pack } from '@/context/GameContext';
 import { Logo, Btn, Coin } from '@/components/components';
+import { auth, isFirebaseEnabled } from '@/firebase/config';
 
 const ADMIN_TOKEN_SECRET = "admin-secret-token-123";
 
@@ -83,12 +84,39 @@ export default function AdminPage() {
   // Load purchases in real-time
   useEffect(() => {
     if (!isHydrated || !account || !account.admin) return;
-    import('@/firebase/firestore').then(({ getPurchases }) => {
-      getPurchases().then(res => {
-        res.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
-        setPurchases(res);
+    
+    let isSubscribed = true;
+    let unsubAuth: (() => void) | null = null;
+
+    const fetchAnalytics = () => {
+      import('@/firebase/firestore').then(({ getPurchases }) => {
+        if (!isSubscribed) return;
+        getPurchases().then(res => {
+          if (!isSubscribed) return;
+          res.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+          setPurchases(res);
+        }).catch(err => console.error("getPurchases failed", err));
       });
-    });
+    };
+
+    if (isFirebaseEnabled && auth) {
+      if (!auth.currentUser || auth.currentUser.uid !== account.uid) {
+        unsubAuth = auth.onAuthStateChanged((user) => {
+          if (user && user.uid === account.uid) {
+            fetchAnalytics();
+          }
+        });
+      } else {
+        fetchAnalytics();
+      }
+    } else {
+      fetchAnalytics();
+    }
+
+    return () => {
+      isSubscribed = false;
+      if (unsubAuth) unsubAuth();
+    };
   }, [isHydrated, account, importSuccess, migrationLog]);
 
   const stats = useMemo(() => {

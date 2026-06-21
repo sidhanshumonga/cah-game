@@ -2,11 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user has admin role in their document
+    // Helper function to check if the user has admin role in their document or email
     function isAdmin() {
       return request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+        (request.auth.token.email == 'sidhanshumonga28@gmail.com' ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true));
     }
 
     // Users can only read/write their own profile
