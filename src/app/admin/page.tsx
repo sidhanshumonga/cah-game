@@ -82,14 +82,14 @@ export default function AdminPage() {
 
   // Load purchases in real-time
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated || !account || !account.admin) return;
     import('@/firebase/firestore').then(({ getPurchases }) => {
       getPurchases().then(res => {
         res.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
         setPurchases(res);
       });
     });
-  }, [isHydrated, importSuccess, migrationLog]);
+  }, [isHydrated, account, importSuccess, migrationLog]);
 
   const stats = useMemo(() => {
     let usdRevenue = 0;
