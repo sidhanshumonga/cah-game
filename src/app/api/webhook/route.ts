@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { db } from '@/firebase/config';
-import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { adminDb } from '@/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-01-27.acacia' as any,
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const uid = session.metadata?.uid;
     const coins = session.metadata?.coins ? parseInt(session.metadata.coins, 10) : 0;
 
-    console.log(`[webhook] session id: ${session.id} | uid: ${uid} | coins: ${coins} | db ready: ${!!db}`);
+    console.log(`[webhook] session id: ${session.id} | uid: ${uid} | coins: ${coins}`);
 
     if (!uid) {
       console.error(`[webhook] SKIP — uid is missing from session metadata. User was probably not logged in via Firebase when checkout started.`);
@@ -40,36 +40,32 @@ export async function POST(req: Request) {
       console.error(`[webhook] SKIP — coins value is ${coins}, must be > 0.`);
       return NextResponse.json({ received: true });
     }
-    if (!db) {
-      console.error(`[webhook] SKIP — Firestore db is null. Check NEXT_PUBLIC_FIREBASE_* env vars are set.`);
-      return NextResponse.json({ error: 'Firestore not initialised' }, { status: 500 });
-    }
 
     try {
-      const userRef = doc(db, 'users', uid);
-      const userSnap = await getDoc(userRef);
+      const userRef = adminDb.collection('users').doc(uid);
+      const userSnap = await userRef.get();
 
-      if (!userSnap.exists()) {
+      if (!userSnap.exists) {
         console.error(`[webhook] SKIP — No Firestore document found for uid: ${uid}`);
         return NextResponse.json({ received: true });
       }
 
-      const userData = userSnap.data();
+      const userData = userSnap.data() || {};
       const currentCredits = userData.credits || 0;
       const currentHistory = userData.history || [];
 
-      await updateDoc(userRef, {
+      await userRef.update({
         credits: currentCredits + coins,
         history: [{ label: 'Coin top-up (Stripe)', delta: coins, ts: Date.now() }, ...currentHistory],
-        updatedAt: serverTimestamp()
+        updatedAt: FieldValue.serverTimestamp()
       });
 
       // Log payment transaction globally to /purchases for analytics
-      const purchaseRef = doc(db, 'purchases', session.id);
+      const purchaseRef = adminDb.collection('purchases').doc(session.id);
       const paidAmount = session.amount_total ? session.amount_total / 100 : 0;
       const payCurrency = (session.currency || 'usd').toUpperCase();
       
-      await setDoc(purchaseRef, {
+      await purchaseRef.set({
         userId: uid,
         userEmail: session.customer_details?.email || session.customer_email || userData.email || userData.name || 'Unknown',
         itemType: 'coins',
@@ -81,7 +77,7 @@ export async function POST(req: Request) {
         stripeSessionId: session.id,
         type: 'top-up',
         timestamp: Date.now(),
-        recordedAt: serverTimestamp()
+        recordedAt: FieldValue.serverTimestamp()
       });
 
       console.log(`[webhook] SUCCESS — credited ${coins} coins to user ${uid}. New balance: ${currentCredits + coins} and logged purchase.`);
@@ -93,3 +89,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ received: true });
 }
+

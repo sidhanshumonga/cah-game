@@ -31,7 +31,7 @@ service cloud.firestore {
     // Purchases: authenticated users can write/read their own purchases; admin role can read all
     match /purchases/{purchaseId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read: if request.auth != null && (resource == null || request.auth.uid == resource.data.userId || isAdmin());
+      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
       allow update, delete: if false;
     }
 
