@@ -2,18 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user has admin role in their document or email
-    function isAdmin() {
-      return request.auth != null && 
-        (('email' in request.auth.token && request.auth.token.email == 'sidhanshumonga28@gmail.com') ||
-         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          'admin' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true));
-    }
-
     // Users can only read/write their own profile; admins can read all profiles
     match /users/{uid} {
-      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow read: if request.auth != null && (request.auth.uid == uid || request.auth.token.email == 'sidhanshumonga28@gmail.com');
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
@@ -25,13 +16,13 @@ service cloud.firestore {
     // Packages: anyone can read; only the admin can write
     match /packages/{packId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if request.auth != null && request.auth.token.email == 'sidhanshumonga28@gmail.com';
     }
 
     // Purchases: authenticated users can write/read their own purchases; admin role can read all
     match /purchases/{purchaseId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if request.auth != null && (request.auth.token.email == 'sidhanshumonga28@gmail.com' || resource.data.userId == request.auth.uid);
       allow update, delete: if false;
     }
 
