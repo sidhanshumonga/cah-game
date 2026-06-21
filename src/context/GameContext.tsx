@@ -550,13 +550,41 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // ── Spend / buy helpers ───────────────────────────────────────────────────
   const spend = useCallback((cost: number, label: string, apply: (a: Account) => Account) => {
+    let userUid: string | null = null;
+    let userEmail: string | null = null;
+    let userName: string | null = null;
+
     setAccount((a) => {
       if (!a || a.credits < cost) return a;
+      userUid = a.uid || null;
+      userEmail = a.email || null;
+      userName = a.name || null;
+
       const b = apply({ ...a, credits: a.credits - cost });
       b.history = [{ label, delta: -cost, ts: Date.now() }, ...b.history];
       persistToFirestore({ credits: b.credits, packs: b.packs, upgrades: b.upgrades, history: b.history });
       return b;
     });
+
+    if (userUid) {
+      const isPack = label.startsWith("Pack: ");
+      const isUpgrade = label.startsWith("Upgrade: ");
+      const name = label.replace(/^(Pack:|Upgrade:)\s*/, "");
+      
+      import('@/firebase/firestore').then(({ logPurchase }) => {
+        logPurchase({
+          userId: userUid!,
+          userEmail: userEmail || userName || 'unknown',
+          itemType: isPack ? 'pack' : isUpgrade ? 'upgrade' : 'other',
+          itemId: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+          itemName: name,
+          cost: cost,
+          currency: 'coins',
+          type: 'spend',
+          timestamp: Date.now()
+        }).catch(e => console.error("Failed to log purchase:", e));
+      });
+    }
   }, [persistToFirestore]);
 
   const buyPack = useCallback((p: { id: string; name: string; price: number }) => {

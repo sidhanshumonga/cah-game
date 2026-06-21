@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/firebase/config';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-01-27.acacia' as any,
@@ -64,7 +64,27 @@ export async function POST(req: Request) {
         updatedAt: serverTimestamp()
       });
 
-      console.log(`[webhook] SUCCESS — credited ${coins} coins to user ${uid}. New balance: ${currentCredits + coins}`);
+      // Log payment transaction globally to /purchases for analytics
+      const purchaseRef = doc(db, 'purchases', session.id);
+      const paidAmount = session.amount_total ? session.amount_total / 100 : 0;
+      const payCurrency = (session.currency || 'usd').toUpperCase();
+      
+      await setDoc(purchaseRef, {
+        userId: uid,
+        userEmail: session.customer_details?.email || session.customer_email || userData.email || userData.name || 'Unknown',
+        itemType: 'coins',
+        itemId: `coins-${coins}`,
+        itemName: `${coins} Coins Bundle`,
+        cost: paidAmount,
+        currency: payCurrency,
+        coinsAwarded: coins,
+        stripeSessionId: session.id,
+        type: 'top-up',
+        timestamp: Date.now(),
+        recordedAt: serverTimestamp()
+      });
+
+      console.log(`[webhook] SUCCESS — credited ${coins} coins to user ${uid}. New balance: ${currentCredits + coins} and logged purchase.`);
     } catch (dbErr) {
       console.error('[webhook] Firestore update failed:', dbErr);
       return NextResponse.json({ error: 'Database update failed' }, { status: 500 });

@@ -400,3 +400,130 @@ export function subscribeReactions(
     });
   });
 }
+
+// ─────────────────────────────────────────────
+// PURCHASES & ANALYTICS
+// ─────────────────────────────────────────────
+
+export async function logPurchase(purchase: {
+  userId: string;
+  userEmail: string;
+  itemType: 'coins' | 'pack' | 'upgrade' | 'other';
+  itemId: string;
+  itemName: string;
+  cost: number;
+  currency: string;
+  coinsAwarded?: number;
+  stripeSessionId?: string;
+  type: 'top-up' | 'spend';
+  timestamp: number;
+}): Promise<void> {
+  if (!db) return;
+  try {
+    const purchaseId = purchase.stripeSessionId && purchase.stripeSessionId !== 'legacy'
+      ? purchase.stripeSessionId
+      : `${purchase.userId}-${purchase.timestamp}-${Math.abs(purchase.cost)}`;
+    
+    await setDoc(doc(db, 'purchases', purchaseId), {
+      ...purchase,
+      recordedAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.error('logPurchase failed', e);
+  }
+}
+
+export async function getPurchases(): Promise<any[]> {
+  if (!db) return [];
+  try {
+    const snap = await getDocs(collection(db, 'purchases'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.error('getPurchases failed', e);
+    return [];
+  }
+}
+
+export async function migrateExistingPurchases(): Promise<number> {
+  if (!db) return 0;
+  try {
+    let migratedCount = 0;
+    const usersSnap = await getDocs(collection(db, 'users'));
+    for (const userDoc of usersSnap.docs) {
+      const userData = userDoc.data();
+      const uid = userDoc.id;
+      const history = userData.history || [];
+      for (const entry of history) {
+        if (!entry.label || entry.delta === undefined) continue;
+        
+        const purchaseId = `${uid}-${entry.ts}-${Math.abs(entry.delta)}`;
+        const docRef = doc(db, 'purchases', purchaseId);
+        const snap = await getDoc(docRef);
+        
+        if (!snap.exists()) {
+          let purchaseData: any = null;
+          
+          if (entry.label.includes("Coin top-up")) {
+            const coins = Math.abs(entry.delta);
+            let approxPrice = 0;
+            // 500 coins -> $4.99 USD
+            // 1200 coins -> $9.99 USD
+            // 3000 coins -> $19.99 USD
+            if (coins === 500) approxPrice = 4.99;
+            else if (coins === 1200) approxPrice = 9.99;
+            else if (coins === 3000) approxPrice = 19.99;
+            
+            purchaseData = {
+              userId: uid,
+              userEmail: userData.email || userData.name || "Unknown",
+              itemType: 'coins',
+              itemId: `coins-${coins}`,
+              itemName: entry.label,
+              cost: approxPrice,
+              currency: 'USD',
+              coinsAwarded: coins,
+              stripeSessionId: 'legacy',
+              type: 'top-up',
+              timestamp: entry.ts || Date.now()
+            };
+          } else if (entry.label.startsWith("Pack: ")) {
+            const packName = entry.label.replace("Pack: ", "");
+            purchaseData = {
+              userId: uid,
+              userEmail: userData.email || userData.name || "Unknown",
+              itemType: 'pack',
+              itemId: packName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+              itemName: packName,
+              cost: Math.abs(entry.delta),
+              currency: 'coins',
+              type: 'spend',
+              timestamp: entry.ts || Date.now()
+            };
+          } else if (entry.label.startsWith("Upgrade: ")) {
+            const upgradeName = entry.label.replace("Upgrade: ", "");
+            purchaseData = {
+              userId: uid,
+              userEmail: userData.email || userData.name || "Unknown",
+              itemType: 'upgrade',
+              itemId: upgradeName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+              itemName: upgradeName,
+              cost: Math.abs(entry.delta),
+              currency: 'coins',
+              type: 'spend',
+              timestamp: entry.ts || Date.now()
+            };
+          }
+          
+          if (purchaseData) {
+            await setDoc(docRef, purchaseData);
+            migratedCount++;
+          }
+        }
+      }
+    }
+    return migratedCount;
+  } catch (e) {
+    console.error('migrateExistingPurchases failed', e);
+    return 0;
+  }
+}

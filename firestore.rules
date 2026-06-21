@@ -19,6 +19,13 @@ service cloud.firestore {
                    && request.auth.token.email == 'sidhanshumonga28@gmail.com';
     }
 
+    // Purchases: authenticated users can write/read their own purchases; admin email can read all
+    match /purchases/{purchaseId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.token.email == 'sidhanshumonga28@gmail.com');
+      allow update, delete: if false;
+    }
+
     // Rooms: anyone can read and write to support guest sessions
     match /rooms/{code} {
       allow read, write: if true;

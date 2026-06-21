@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameContext, Pack } from '@/context/GameContext';
 import { Logo, Btn, Coin } from '@/components/components';
@@ -66,6 +66,10 @@ export default function AdminPage() {
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
   const [isSubmittingBE, setIsSubmittingBE] = useState(false);
 
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationLog, setMigrationLog] = useState<string | null>(null);
+
   // Load Firestore packs in real-time
   useEffect(() => {
     if (!isHydrated) return;
@@ -75,6 +79,55 @@ export default function AdminPage() {
     });
     return () => { if (unsub) unsub(); };
   }, [isHydrated]);
+
+  // Load purchases in real-time
+  useEffect(() => {
+    if (!isHydrated) return;
+    import('@/firebase/firestore').then(({ getPurchases }) => {
+      getPurchases().then(res => {
+        res.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+        setPurchases(res);
+      });
+    });
+  }, [isHydrated, importSuccess, migrationLog]);
+
+  const stats = useMemo(() => {
+    let usdRevenue = 0;
+    let inrRevenue = 0;
+    let coinsBought = 0;
+    let coinsSpent = 0;
+    let packsSpentCount = 0;
+    let upgradesSpentCount = 0;
+
+    purchases.forEach((p) => {
+      if (p.type === 'top-up') {
+        coinsBought += p.coinsAwarded || 0;
+        if (p.currency === 'USD') usdRevenue += p.cost || 0;
+        if (p.currency === 'INR') inrRevenue += p.cost || 0;
+      } else if (p.type === 'spend') {
+        coinsSpent += p.cost || 0;
+        if (p.itemType === 'pack') packsSpentCount++;
+        if (p.itemType === 'upgrade') upgradesSpentCount++;
+      }
+    });
+
+    return { usdRevenue, inrRevenue, coinsBought, coinsSpent, packsSpentCount, upgradesSpentCount };
+  }, [purchases]);
+
+  const handleMigratePurchases = async () => {
+    setIsMigrating(true);
+    setMigrationLog("Starting transaction scan...");
+    try {
+      const { migrateExistingPurchases } = await import('@/firebase/firestore');
+      const count = await migrateExistingPurchases();
+      setMigrationLog(`Sync completed. Successfully migrated ${count} legacy user transactions to /purchases.`);
+      setTimeout(() => setMigrationLog(null), 5000);
+    } catch (e: any) {
+      setMigrationLog(`Sync failed: ${e.message}`);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
 
   const loadPreset = (preset: object) => {
     setJsonText(JSON.stringify(preset, null, 2));
@@ -343,6 +396,88 @@ export default function AdminPage() {
                   ✕ Wipe All Firestore Packages
                 </button>
               )}
+            </section>
+
+            {/* Purchase Analytics Panel */}
+            <section className="admin-panel admin-panel-status" style={{ marginTop: '20px' }}>
+              <div className="admin-panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3>Purchase Analytics</h3>
+                <button 
+                  className="preset-btn" 
+                  disabled={isMigrating} 
+                  onClick={handleMigratePurchases}
+                  style={{ margin: 0, padding: '4px 10px', fontSize: '12px' }}
+                >
+                  {isMigrating ? "Syncing..." : "🔄 Sync Legacy Purchases"}
+                </button>
+              </div>
+
+              {migrationLog && (
+                <div className="validation-bar validation-success" style={{ marginBottom: '14px', fontSize: '13px' }}>
+                  {migrationLog}
+                </div>
+              )}
+
+              <div className="status-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
+                <div className="status-item" style={{ padding: '10px' }}>
+                  <span className="status-num" style={{ fontSize: '18px' }}>${stats.usdRevenue.toFixed(2)}</span>
+                  <span className="status-label" style={{ fontSize: '11px' }}>USD Revenue</span>
+                </div>
+                <div className="status-item" style={{ padding: '10px' }}>
+                  <span className="status-num" style={{ fontSize: '18px' }}>₹{stats.inrRevenue.toFixed(0)}</span>
+                  <span className="status-label" style={{ fontSize: '11px' }}>INR Revenue</span>
+                </div>
+                <div className="status-item" style={{ padding: '10px' }}>
+                  <span className="status-num" style={{ fontSize: '18px' }}>{stats.coinsBought}</span>
+                  <span className="status-label" style={{ fontSize: '11px' }}>Coins Bought</span>
+                </div>
+              </div>
+
+              <div className="status-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+                <div className="status-item" style={{ padding: '10px' }}>
+                  <span className="status-num" style={{ fontSize: '18px' }}>{stats.coinsSpent}</span>
+                  <span className="status-label" style={{ fontSize: '11px' }}>Coins Spent</span>
+                </div>
+                <div className="status-item" style={{ padding: '10px' }}>
+                  <span className="status-num" style={{ fontSize: '18px' }}>{stats.packsSpentCount}</span>
+                  <span className="status-label" style={{ fontSize: '11px' }}>Packs Bought</span>
+                </div>
+                <div className="status-item" style={{ padding: '10px' }}>
+                  <span className="status-num" style={{ fontSize: '18px' }}>{stats.upgradesSpentCount}</span>
+                  <span className="status-label" style={{ fontSize: '11px' }}>Upgrades Bought</span>
+                </div>
+              </div>
+
+              <div className="catalog-list-wrap">
+                <h4 className="catalog-list-title">Recent Transactions ({purchases.length}):</h4>
+                <div className="catalog-list" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                  {purchases.length === 0 && <p className="muted" style={{ padding: '8px 0' }}>No purchase records found.</p>}
+                  {purchases.map((p, idx) => (
+                    <div key={p.id || idx} className="catalog-item" style={{ padding: '8px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div className="catalog-item-main" style={{ fontSize: '13px' }}>
+                        <span className="catalog-item-name" style={{ fontWeight: 600 }}>{p.itemName}</span>
+                        <span 
+                          className="custom-badge" 
+                          style={{
+                            background: p.type === 'top-up' ? 'rgba(43,196,190,0.15)' : 'rgba(255,201,60,0.15)',
+                            color: p.type === 'top-up' ? '#2BC4BE' : '#FFC93C',
+                            fontSize: '9px',
+                            padding: '1px 5px'
+                          }}
+                        >
+                          {p.type === 'top-up' ? 'Top-up' : 'Spend'}
+                        </span>
+                      </div>
+                      <div className="catalog-item-meta" style={{ fontSize: '12px', marginTop: '3px' }}>
+                        <span style={{ opacity: 0.6 }}>{p.userEmail}</span>
+                        <span style={{ fontWeight: 700 }}>
+                          {p.currency === 'coins' ? `${p.cost} coins` : p.currency === 'USD' ? `$${p.cost.toFixed(2)}` : `₹${p.cost.toFixed(0)}`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </section>
 
             {/* Server logs / Console terminal */}
