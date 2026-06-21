@@ -125,10 +125,10 @@ export default function AdminPage() {
 
   const adminKeys = useMemo(() => {
     const uids = new Set<string>();
-    const emails = new Set<string>(["sidhanshumonga28@gmail.com"]);
+    const emails = new Set<string>();
     if (Array.isArray(users)) {
       users.forEach(u => {
-        if (u && u.admin) {
+        if (u && u.admin && u.email !== "sidhanshumonga28@gmail.com") {
           if (u.uid) uids.add(u.uid);
           if (u.email && typeof u.email === 'string') {
             emails.add(u.email.toLowerCase());
