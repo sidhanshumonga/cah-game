@@ -72,6 +72,10 @@ export default function AdminPage() {
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationLog, setMigrationLog] = useState<string | null>(null);
 
+  const [activeTab, setActiveTab] = useState<'analytics' | 'catalog'>('analytics');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<'all' | 'top-up' | 'spend'>('all');
+
   // Load Firestore packs in real-time
   useEffect(() => {
     if (!isHydrated) return;
@@ -174,6 +178,60 @@ export default function AdminPage() {
 
     return { usdRevenue, inrRevenue, coinsBought, coinsSpent, packsSpentCount, upgradesSpentCount };
   }, [filteredPurchases]);
+
+  const processedTransactions = useMemo(() => {
+    let result = filteredPurchases;
+    
+    // 1. Filter by type
+    if (filterType !== 'all') {
+      result = result.filter(p => p.type === filterType);
+    }
+    
+    // 2. Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(p => {
+        const email = p.userEmail && typeof p.userEmail === 'string' ? p.userEmail.toLowerCase() : "";
+        const name = p.itemName && typeof p.itemName === 'string' ? p.itemName.toLowerCase() : "";
+        const uid = p.userId && typeof p.userId === 'string' ? p.userId.toLowerCase() : "";
+        return email.includes(q) || name.includes(q) || uid.includes(q);
+      });
+    }
+    
+    return result;
+  }, [filteredPurchases, filterType, searchQuery]);
+
+  const userStats = useMemo(() => {
+    let totalUsers = 0;
+    let activeUsers = 0;
+    let guestUsers = 0;
+    let totalAdmin = 0;
+    
+    if (Array.isArray(users)) {
+      totalUsers = users.length;
+      users.forEach(u => {
+        if (!u) return;
+        if (u.admin) totalAdmin++;
+        if (u.guest) guestUsers++;
+        if (u.games && u.games > 0) activeUsers++;
+      });
+    }
+    
+    return { totalUsers, activeUsers, guestUsers, totalAdmin };
+  }, [users]);
+
+  const filteredUsers = useMemo(() => {
+    if (!Array.isArray(users)) return [];
+    if (!searchQuery.trim()) return users;
+    const q = searchQuery.toLowerCase().trim();
+    return users.filter(u => {
+      if (!u) return false;
+      const email = u.email && typeof u.email === 'string' ? u.email.toLowerCase() : "";
+      const name = u.name && typeof u.name === 'string' ? u.name.toLowerCase() : "";
+      const uid = u.uid && typeof u.uid === 'string' ? u.uid.toLowerCase() : "";
+      return email.includes(q) || name.includes(q) || uid.includes(q);
+    });
+  }, [users, searchQuery]);
 
   const handleMigratePurchases = async () => {
     setIsMigrating(true);
@@ -355,218 +413,353 @@ export default function AdminPage() {
 
       <div className="create-body admin-layout">
         <div className="admin-header-row">
-          <h2 className="create-title admin-title">Admin Catalog Console</h2>
+          <h2 className="create-title admin-title">Admin Console</h2>
           <span className="chip admin-secure-badge">● Secure Admin Session</span>
         </div>
 
-        <div className="admin-grid">
-          {/* Column 1: JSON Editor */}
-          <section className="admin-panel admin-panel-editor">
-            <div className="admin-panel-head">
-              <h3>Import Card Packages</h3>
-              <span className="admin-panel-subtitle">Seed package lists directly into game database</span>
-            </div>
+        {/* Tab Navigation */}
+        <div className="admin-tabs">
+          <button 
+            className={`admin-tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            Purchase Analytics
+          </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === 'catalog' ? 'active' : ''}`}
+            onClick={() => setActiveTab('catalog')}
+          >
+            Manage Packs & Catalog
+          </button>
+        </div>
 
-            <div className="preset-row">
-              <span className="preset-label">Load Preset:</span>
-              <button className="preset-btn" onClick={() => loadPreset(SPACE_PACK_SAMPLE)}>Space & Cosmos Pack</button>
-              <button className="preset-btn" onClick={() => loadPreset(TECH_PACK_SAMPLE)}>Tech & Startups Pack</button>
-            </div>
-
-            <div className="editor-wrap">
-              <textarea
-                className={`admin-textarea ${validationError ? 'editor-err' : jsonText.trim() ? 'editor-success' : ''}`}
-                placeholder={`{\n  "packs": [\n    {\n      "name": "Astronomy Pack",\n      "free": false,\n      "price": 100,\n      "prompts": ["I looked into space and saw ____."],\n      "answers": ["twinkle stars"]\n    }\n  ]\n}`}
-                value={jsonText}
-                onChange={(e) => setJsonText(e.target.value)}
-              />
-              {validationError && (
-                <div className="validation-bar validation-err">
-                  ✕ {validationError}
-                </div>
-              )}
-              {!validationError && jsonText.trim() && (
-                <div className="validation-bar validation-success">
-                  ✓ Valid JSON Schema Structure
-                </div>
-              )}
-            </div>
-
-            {importSuccess && (
-              <div className="import-success-toast">
-                {importSuccess}
+        {activeTab === 'analytics' ? (
+          /* ======================================================================
+             TAB 1: PURCHASE ANALYTICS (BIGGER & BETTER VIEW)
+             ====================================================================== */
+          <div className="analytics-layout">
+            {/* Stats Summary Grid (6 cards) */}
+            <div className="premium-stats-row">
+              <div className="premium-stat-card stat-card-usd">
+                <span className="premium-stat-value">${stats.usdRevenue.toFixed(2)}</span>
+                <span className="premium-stat-label">USD Revenue</span>
               </div>
-            )}
-
-            <div className="admin-actions">
-              <Btn
-                big={true}
-                variant="primary"
-                disabled={!!validationError || !jsonText.trim() || isSubmittingBE}
-                onClick={handleSeedFirestore}
-              >
-                {isSubmittingBE ? "Seeding Firestore..." : "Seed to Firestore DB"}
-              </Btn>
+              <div className="premium-stat-card stat-card-inr">
+                <span className="premium-stat-value">₹{stats.inrRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                <span className="premium-stat-label">INR Revenue</span>
+              </div>
+              <div className="premium-stat-card stat-card-bought">
+                <span className="premium-stat-value">{stats.coinsBought.toLocaleString()}</span>
+                <span className="premium-stat-label">Coins Purchased</span>
+              </div>
+              <div className="premium-stat-card stat-card-spent">
+                <span className="premium-stat-value">{stats.coinsSpent.toLocaleString()}</span>
+                <span className="premium-stat-label">Coins Spent</span>
+              </div>
+              <div className="premium-stat-card stat-card-packs">
+                <span className="premium-stat-value">{stats.packsSpentCount}</span>
+                <span className="premium-stat-label">Packs Unlocked</span>
+              </div>
+              <div className="premium-stat-card stat-card-upgrades">
+                <span className="premium-stat-value">{stats.upgradesSpentCount}</span>
+                <span className="premium-stat-label">Upgrades Unlocked</span>
+              </div>
             </div>
-          </section>
 
-          {/* Column 2: Status & Logs */}
-          <div className="admin-col-right">
-            {/* Database Status Panel */}
-            <section className="admin-panel admin-panel-status">
-              <div className="admin-panel-head">
-                <h3>Card Catalog Status</h3>
+            {/* Filter and Search Controls */}
+            <div className="analytics-controls">
+              <div className="search-input-wrap">
+                <input 
+                  type="text" 
+                  className="search-input"
+                  placeholder="Search transactions or users by email/name/UID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
               
-              <div className="status-grid">
-                <div className="status-item">
-                  <span className="status-num">{packs.length}</span>
-                  <span className="status-label">Total Packs</span>
-                </div>
-                <div className="status-item">
-                  <span className="status-num">{firestorePacks.length}</span>
-                  <span className="status-label">🔥 In Firestore</span>
-                </div>
-              </div>
-
-              <div className="catalog-list-wrap">
-                <h4 className="catalog-list-title">Firestore Packages ({firestorePacks.length}):</h4>
-                <div className="catalog-list">
-                  {firestorePacks.length === 0 && <p className="muted" style={{padding:'8px 0'}}>No packages seeded yet.</p>}
-                  {firestorePacks.map((p) => (
-                    <div key={p.id} className="catalog-item">
-                      <div className="catalog-item-main">
-                        <span className="catalog-item-name">{p.name}</span>
-                        <span className="custom-badge" style={{background:'rgba(44,196,190,0.15)',color:'#2BC4BE'}}>Firestore</span>
-                      </div>
-                      <div className="catalog-item-meta">
-                        <span className="catalog-item-cards">{p.cards} cards</span>
-                        {p.free ? (
-                          <span className="catalog-item-price">Free</span>
-                        ) : (
-                          <span className="catalog-item-price"><Coin size={10} /> {p.price}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {firestorePacks.length > 0 && (
-                <button className="clear-db-btn" onClick={handleClearFirestore}>
-                  ✕ Wipe All Firestore Packages
-                </button>
-              )}
-            </section>
-
-            {/* Purchase Analytics Panel */}
-            <section className="admin-panel admin-panel-status" style={{ marginTop: '20px' }}>
-              <div className="admin-panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3>Purchase Analytics</h3>
+              <div className="filter-tabs">
                 <button 
-                  className="preset-btn" 
-                  disabled={isMigrating} 
-                  onClick={handleMigratePurchases}
-                  style={{ margin: 0, padding: '4px 10px', fontSize: '12px' }}
+                  className={`filter-tab-btn ${filterType === 'all' ? 'active' : ''}`}
+                  onClick={() => setFilterType('all')}
                 >
-                  {isMigrating ? "Syncing..." : "🔄 Sync Legacy Purchases"}
+                  All Transactions
+                </button>
+                <button 
+                  className={`filter-tab-btn ${filterType === 'top-up' ? 'active' : ''}`}
+                  onClick={() => setFilterType('top-up')}
+                >
+                  Coin Top-ups
+                </button>
+                <button 
+                  className={`filter-tab-btn ${filterType === 'spend' ? 'active' : ''}`}
+                  onClick={() => setFilterType('spend')}
+                >
+                  Coin Spends
                 </button>
               </div>
 
-              {migrationLog && (
-                <div className="validation-bar validation-success" style={{ marginBottom: '14px', fontSize: '13px' }}>
-                  {migrationLog}
-                </div>
-              )}
+              <button 
+                className="preset-btn" 
+                disabled={isMigrating} 
+                onClick={handleMigratePurchases}
+                style={{ margin: 0, padding: '10px 16px', fontSize: '13px' }}
+              >
+                {isMigrating ? "Syncing..." : "🔄 Sync Stripe Purchases"}
+              </button>
+            </div>
 
-              <div className="status-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
-                <div className="status-item" style={{ padding: '10px' }}>
-                  <span className="status-num" style={{ fontSize: '18px' }}>${stats.usdRevenue.toFixed(2)}</span>
-                  <span className="status-label" style={{ fontSize: '11px' }}>USD Revenue</span>
-                </div>
-                <div className="status-item" style={{ padding: '10px' }}>
-                  <span className="status-num" style={{ fontSize: '18px' }}>₹{stats.inrRevenue.toFixed(0)}</span>
-                  <span className="status-label" style={{ fontSize: '11px' }}>INR Revenue</span>
-                </div>
-                <div className="status-item" style={{ padding: '10px' }}>
-                  <span className="status-num" style={{ fontSize: '18px' }}>{stats.coinsBought}</span>
-                  <span className="status-label" style={{ fontSize: '11px' }}>Coins Bought</span>
-                </div>
+            {migrationLog && (
+              <div className="validation-bar validation-success" style={{ fontSize: '13.5px' }}>
+                {migrationLog}
               </div>
+            )}
 
-              <div className="status-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-                <div className="status-item" style={{ padding: '10px' }}>
-                  <span className="status-num" style={{ fontSize: '18px' }}>{stats.coinsSpent}</span>
-                  <span className="status-label" style={{ fontSize: '11px' }}>Coins Spent</span>
+            {/* Two-Column Grid: Transactions (Left) & Players List (Right) */}
+            <div className="analytics-grid">
+              
+              {/* Column 1: Recent Transactions */}
+              <section className="analytics-table-card" style={{ marginBottom: 0 }}>
+                <div className="table-header-row">
+                  <h3 className="table-title">Transaction History ({processedTransactions.length})</h3>
                 </div>
-                <div className="status-item" style={{ padding: '10px' }}>
-                  <span className="status-num" style={{ fontSize: '18px' }}>{stats.packsSpentCount}</span>
-                  <span className="status-label" style={{ fontSize: '11px' }}>Packs Bought</span>
-                </div>
-                <div className="status-item" style={{ padding: '10px' }}>
-                  <span className="status-num" style={{ fontSize: '18px' }}>{stats.upgradesSpentCount}</span>
-                  <span className="status-label" style={{ fontSize: '11px' }}>Upgrades Bought</span>
-                </div>
-              </div>
-
-              <div className="catalog-list-wrap">
-                <h4 className="catalog-list-title">Recent Transactions ({filteredPurchases.length}):</h4>
-                <div className="catalog-list" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                  {filteredPurchases.length === 0 && <p className="muted" style={{ padding: '8px 0' }}>No purchase records found.</p>}
-                  {filteredPurchases.map((p, idx) => (
-                    <div key={p.id || idx} className="catalog-item" style={{ padding: '8px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div className="catalog-item-main" style={{ fontSize: '13px' }}>
-                        <span className="catalog-item-name" style={{ fontWeight: 600 }}>{p.itemName}</span>
-                        <span 
-                          className="custom-badge" 
-                          style={{
-                            background: p.type === 'top-up' ? 'rgba(43,196,190,0.15)' : 'rgba(255,201,60,0.15)',
-                            color: p.type === 'top-up' ? '#2BC4BE' : '#FFC93C',
-                            fontSize: '9px',
-                            padding: '1px 5px'
-                          }}
-                        >
-                          {p.type === 'top-up' ? 'Top-up' : 'Spend'}
-                        </span>
-                      </div>
-                      <div className="catalog-item-meta" style={{ fontSize: '12px', marginTop: '3px' }}>
-                        <span style={{ opacity: 0.6 }}>{p.userEmail}</span>
-                        <span style={{ fontWeight: 700 }}>
-                          {p.currency === 'coins' ? `${p.cost} coins` : p.currency === 'USD' ? `$${p.cost.toFixed(2)}` : `₹${p.cost.toFixed(0)}`}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* Server logs / Console terminal */}
-            {terminalLogs.length > 0 && (
-              <section className="admin-panel admin-panel-terminal">
-                <div className="admin-panel-head">
-                  <h3>Backend API Console Output</h3>
-                </div>
-                <div className="terminal-screen">
-                  {terminalLogs.map((line, index) => (
-                    <div
-                      key={index}
-                      className={
-                        line.startsWith("<") ? "term-in" :
-                        line.startsWith("[ERROR]") ? "term-err" :
-                        line.startsWith("[SYSTEM]") ? "term-sys" :
-                        line.startsWith(">") ? "term-out" :
-                        "term-text"
-                      }
-                    >
-                      {line}
-                    </div>
-                  ))}
+                
+                <div className="premium-table-wrap">
+                  <table className="premium-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>User Email</th>
+                        <th>Type</th>
+                        <th>Item Description</th>
+                        <th>Price/Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {processedTransactions.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                            No transaction records matched the filters.
+                          </td>
+                        </tr>
+                      ) : (
+                        processedTransactions.map((p, idx) => {
+                          const dateObj = p.timestamp ? new Date(p.timestamp) : null;
+                          const dateStr = dateObj 
+                            ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + 
+                              ' ' + 
+                              dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+                            : 'Unknown Date';
+                            
+                          return (
+                            <tr key={p.id || idx}>
+                              <td style={{ opacity: 0.8, fontSize: '12.5px' }}>{dateStr}</td>
+                              <td style={{ fontWeight: 500 }}>
+                                <span title={p.userId}>{p.userEmail || "anonymous"}</span>
+                              </td>
+                              <td>
+                                <span className={p.type === 'top-up' ? 'badge-top-up' : 'badge-spend'}>
+                                  {p.type === 'top-up' ? 'Top-up' : 'Spend'}
+                                </span>
+                              </td>
+                              <td style={{ fontWeight: 600 }}>{p.itemName || "Unnamed Item"}</td>
+                              <td style={{ fontWeight: 700 }}>
+                                {p.currency === 'coins' ? (
+                                  <span style={{ color: '#FFC93C' }}>{p.cost} coins</span>
+                                ) : p.currency === 'USD' ? (
+                                  <span style={{ color: '#2BC4BE' }}>${p.cost.toFixed(2)}</span>
+                                ) : (
+                                  <span style={{ color: '#00D2FF' }}>₹{p.cost.toFixed(0)}</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </section>
-            )}
+
+              {/* Column 2: Players Summary List */}
+              <section className="analytics-table-card" style={{ marginBottom: 0 }}>
+                <div className="table-header-row">
+                  <h3 className="table-title">Registered Players ({filteredUsers.length})</h3>
+                </div>
+
+                <div className="premium-table-wrap" style={{ maxHeight: '450px' }}>
+                  {filteredUsers.length === 0 ? (
+                    <p className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                      No registered players found.
+                    </p>
+                  ) : (
+                    filteredUsers.map((u, idx) => {
+                      const firstLetter = u.name ? u.name.charAt(0) : (u.email ? u.email.charAt(0) : '?');
+                      const userRole = u.admin ? 'Admin' : (u.guest ? 'Guest' : 'Player');
+                      const roleClass = u.admin ? 'badge-admin' : (u.guest ? 'badge-guest' : 'badge-player');
+                      
+                      return (
+                        <div key={u.uid || idx} className="player-user-row">
+                          <div 
+                            className="player-avatar" 
+                            style={{ background: u.color || '#5c6bc0' }}
+                          >
+                            {firstLetter}
+                          </div>
+                          
+                          <div className="player-info">
+                            <div className="player-name">
+                              <span>{u.name || "Anonymous User"}</span>
+                              <span className={roleClass}>{userRole}</span>
+                            </div>
+                            <div className="player-email" title={u.uid}>{u.email || "No email address"}</div>
+                          </div>
+                          
+                          <div className="player-meta">
+                            <span className="player-coins">{u.credits ?? 0} coins</span>
+                            <span className="player-games">{u.games ?? 0} games</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+
+            </div>
           </div>
-        </div>
+        ) : (
+          /* ======================================================================
+             TAB 2: MANAGE PACKS & CATALOG
+             ====================================================================== */
+          <div className="admin-grid">
+            {/* Column 1: JSON Editor */}
+            <section className="admin-panel admin-panel-editor">
+              <div className="admin-panel-head">
+                <h3>Import Card Packages</h3>
+                <span className="admin-panel-subtitle">Seed package lists directly into game database</span>
+              </div>
+
+              <div className="preset-row">
+                <span className="preset-label">Load Preset:</span>
+                <button className="preset-btn" onClick={() => loadPreset(SPACE_PACK_SAMPLE)}>Space & Cosmos Pack</button>
+                <button className="preset-btn" onClick={() => loadPreset(TECH_PACK_SAMPLE)}>Tech & Startups Pack</button>
+              </div>
+
+              <div className="editor-wrap">
+                <textarea
+                  className={`admin-textarea ${validationError ? 'editor-err' : jsonText.trim() ? 'editor-success' : ''}`}
+                  placeholder={`{\n  "packs": [\n    {\n      "name": "Astronomy Pack",\n      "free": false,\n      "price": 100,\n      "prompts": ["I looked into space and saw ____."],\n      "answers": ["twinkle stars"]\n    }\n  ]\n}`}
+                  value={jsonText}
+                  onChange={(e) => setJsonText(e.target.value)}
+                />
+                {validationError && (
+                  <div className="validation-bar validation-err">
+                    ✕ {validationError}
+                  </div>
+                )}
+                {!validationError && jsonText.trim() && (
+                  <div className="validation-bar validation-success">
+                    ✓ Valid JSON Schema Structure
+                  </div>
+                )}
+              </div>
+
+              {importSuccess && (
+                <div className="import-success-toast">
+                  {importSuccess}
+                </div>
+              )}
+
+              <div className="admin-actions">
+                <Btn
+                  big={true}
+                  variant="primary"
+                  disabled={!!validationError || !jsonText.trim() || isSubmittingBE}
+                  onClick={handleSeedFirestore}
+                >
+                  {isSubmittingBE ? "Seeding Firestore..." : "Seed to Firestore DB"}
+                </Btn>
+              </div>
+            </section>
+
+            {/* Column 2: Catalog Status & Logs */}
+            <div className="admin-col-right">
+              {/* Database Status Panel */}
+              <section className="admin-panel admin-panel-status">
+                <div className="admin-panel-head">
+                  <h3>Card Catalog Status</h3>
+                </div>
+                
+                <div className="status-grid">
+                  <div className="status-item">
+                    <span className="status-num">{packs.length}</span>
+                    <span className="status-label">Total Packs</span>
+                  </div>
+                  <div className="status-item">
+                    <span className="status-num">{firestorePacks.length}</span>
+                    <span className="status-label">🔥 In Firestore</span>
+                  </div>
+                </div>
+
+                <div className="catalog-list-wrap">
+                  <h4 className="catalog-list-title">Firestore Packages ({firestorePacks.length}):</h4>
+                  <div className="catalog-list">
+                    {firestorePacks.length === 0 && <p className="muted" style={{padding:'8px 0'}}>No packages seeded yet.</p>}
+                    {firestorePacks.map((p) => (
+                      <div key={p.id} className="catalog-item">
+                        <div className="catalog-item-main">
+                          <span className="catalog-item-name">{p.name}</span>
+                          <span className="custom-badge" style={{background:'rgba(44,196,190,0.15)',color:'#2BC4BE'}}>Firestore</span>
+                        </div>
+                        <div className="catalog-item-meta">
+                          <span className="catalog-item-cards">{p.cards} cards</span>
+                          {p.free ? (
+                            <span className="catalog-item-price">Free</span>
+                          ) : (
+                            <span className="catalog-item-price"><Coin size={10} /> {p.price}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {firestorePacks.length > 0 && (
+                  <button className="clear-db-btn" onClick={handleClearFirestore}>
+                    ✕ Wipe All Firestore Packages
+                  </button>
+                )}
+              </section>
+
+              {/* Console terminal */}
+              {terminalLogs.length > 0 && (
+                <section className="admin-panel admin-panel-terminal" style={{ marginTop: '20px' }}>
+                  <div className="admin-panel-head">
+                    <h3>Backend API Console Output</h3>
+                  </div>
+                  <div className="terminal-screen">
+                    {terminalLogs.map((line, index) => (
+                      <div
+                        key={index}
+                        className={
+                          line.startsWith("<") ? "term-in" :
+                          line.startsWith("[ERROR]") ? "term-err" :
+                          line.startsWith("[SYSTEM]") ? "term-sys" :
+                          line.startsWith(">") ? "term-out" :
+                          "term-text"
+                        }
+                      >
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
