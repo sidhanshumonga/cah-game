@@ -538,3 +538,14 @@ export async function migrateExistingPurchases(): Promise<number> {
     return 0;
   }
 }
+
+export async function getAllRooms(): Promise<any[]> {
+  if (!db) return [];
+  try {
+    const snap = await getDocs(collection(db, 'rooms'));
+    return snap.docs.map(d => ({ code: d.id, ...d.data() }));
+  } catch (e) {
+    console.error('getAllRooms failed', e);
+    return [];
+  }
+}

@@ -69,10 +69,11 @@ export default function AdminPage() {
 
   const [purchases, setPurchases] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationLog, setMigrationLog] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'catalog'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'rooms' | 'catalog'>('analytics');
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'top-up' | 'spend'>('all');
 
@@ -86,7 +87,7 @@ export default function AdminPage() {
     return () => { if (unsub) unsub(); };
   }, [isHydrated]);
 
-  // Load purchases & users in real-time
+  // Load purchases, users & rooms in real-time
   useEffect(() => {
     if (!isHydrated || !account || !account.admin) return;
     
@@ -94,15 +95,17 @@ export default function AdminPage() {
     let unsubAuth: (() => void) | null = null;
 
     const fetchAnalytics = () => {
-      import('@/firebase/firestore').then(({ getPurchases, getAllUsers }) => {
+      import('@/firebase/firestore').then(({ getPurchases, getAllUsers, getAllRooms }) => {
         if (!isSubscribed) return;
-        Promise.all([getPurchases(), getAllUsers()]).then(([purchRes, userRes]) => {
+        Promise.all([getPurchases(), getAllUsers(), getAllRooms()]).then(([purchRes, userRes, roomRes]) => {
           if (!isSubscribed) return;
           const safePurch = Array.isArray(purchRes) ? purchRes : [];
           const safeUsers = Array.isArray(userRes) ? userRes : [];
+          const safeRooms = Array.isArray(roomRes) ? roomRes : [];
           safePurch.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
           setPurchases(safePurch);
           setUsers(safeUsers);
+          setRooms(safeRooms);
         }).catch(err => console.error("fetchAnalytics failed", err));
       });
     };
@@ -232,6 +235,77 @@ export default function AdminPage() {
       return email.includes(q) || name.includes(q) || uid.includes(q);
     });
   }, [users, searchQuery]);
+
+  const roomStats = useMemo(() => {
+    let totalRooms = 0;
+    let inLobbyDisconnected = 0;
+    let inLobbyActive = 0;
+    let activeGames = 0;
+    let completedGames = 0;
+    let endedGames = 0;
+    
+    const packUsage: { [key: string]: number } = {};
+    const oneHourAgo = Date.now() - 3600000;
+
+    if (Array.isArray(rooms)) {
+      totalRooms = rooms.length;
+      rooms.forEach((r) => {
+        if (!r) return;
+        
+        let createdMs = 0;
+        if (r.createdAt) {
+          if (typeof r.createdAt.toMillis === 'function') {
+            createdMs = r.createdAt.toMillis();
+          } else if (r.createdAt.seconds) {
+            createdMs = r.createdAt.seconds * 1000;
+          } else if (typeof r.createdAt === 'number') {
+            createdMs = r.createdAt;
+          }
+        }
+
+        if (r.status === 'lobby') {
+          if (createdMs && createdMs < oneHourAgo) {
+            inLobbyDisconnected++;
+          } else {
+            inLobbyActive++;
+          }
+        } else if (r.status === 'playing') {
+          activeGames++;
+        } else if (r.status === 'completed') {
+          completedGames++;
+        } else if (r.status === 'ended') {
+          endedGames++;
+        }
+
+        if (r.settings && Array.isArray(r.settings.packs)) {
+          r.settings.packs.forEach((pId: string) => {
+            packUsage[pId] = (packUsage[pId] || 0) + 1;
+          });
+        }
+      });
+    }
+
+    const sortedPackUsage = Object.entries(packUsage)
+      .map(([packId, count]) => {
+        const match = (packs || []).find((pk) => pk.id === packId) || (firestorePacks || []).find((pk) => pk.id === packId);
+        return {
+          id: packId,
+          name: match ? match.name : packId,
+          count
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      totalRooms,
+      inLobbyDisconnected,
+      inLobbyActive,
+      activeGames,
+      completedGames,
+      endedGames,
+      sortedPackUsage
+    };
+  }, [rooms, packs, firestorePacks]);
 
   const handleMigratePurchases = async () => {
     setIsMigrating(true);
@@ -424,6 +498,12 @@ export default function AdminPage() {
             onClick={() => setActiveTab('analytics')}
           >
             Purchase Analytics
+          </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === 'rooms' ? 'active' : ''}`}
+            onClick={() => setActiveTab('rooms')}
+          >
+            Room & Session Analytics
           </button>
           <button 
             className={`admin-tab-btn ${activeTab === 'catalog' ? 'active' : ''}`}
@@ -623,6 +703,188 @@ export default function AdminPage() {
                       );
                     })
                   )}
+                </div>
+              </section>
+
+            </div>
+          </div>
+        ) : activeTab === 'rooms' ? (
+          /* ======================================================================
+             TAB 2: ROOM & SESSION ANALYTICS
+             ====================================================================== */
+          <div className="analytics-layout animate-fade-in">
+            {/* Stats Summary Grid (6 cards) */}
+            <div className="premium-stats-row">
+              <div className="premium-stat-card stat-card-usd">
+                <span className="premium-stat-value">{roomStats.totalRooms}</span>
+                <span className="premium-stat-label">Total Rooms Created</span>
+              </div>
+              <div className="premium-stat-card stat-card-bought">
+                <span className="premium-stat-value">{roomStats.inLobbyActive}</span>
+                <span className="premium-stat-label">Active Lobbies</span>
+              </div>
+              <div className="premium-stat-card stat-card-spent">
+                <span className="premium-stat-value">{roomStats.inLobbyDisconnected}</span>
+                <span className="premium-stat-label">Abandoned Lobbies (&gt;1h)</span>
+              </div>
+              <div className="premium-stat-card stat-card-inr">
+                <span className="premium-stat-value">{roomStats.activeGames}</span>
+                <span className="premium-stat-label">Active Games (Playing)</span>
+              </div>
+              <div className="premium-stat-card stat-card-packs">
+                <span className="premium-stat-value">{roomStats.completedGames}</span>
+                <span className="premium-stat-label">Completed Games</span>
+              </div>
+              <div className="premium-stat-card stat-card-upgrades">
+                <span className="premium-stat-value">{roomStats.endedGames}</span>
+                <span className="premium-stat-label">Host-Ended Games</span>
+              </div>
+            </div>
+
+            {/* Room Analytics Grid */}
+            <div className="analytics-grid">
+              
+              {/* Column 1: Detailed Room Sessions Log */}
+              <section className="analytics-table-card" style={{ marginBottom: 0 }}>
+                <div className="table-header-row">
+                  <h3 className="table-title">Active & Historic Room Sessions ({rooms.length})</h3>
+                </div>
+                
+                <div className="premium-table-wrap">
+                  <table className="premium-table">
+                    <thead>
+                      <tr>
+                        <th>Room Code</th>
+                        <th>Host Name</th>
+                        <th>Created Date</th>
+                        <th>Status</th>
+                        <th>Details (Max Players / Timer)</th>
+                        <th>Packs Selected</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rooms.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                            No game rooms created in the database yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        [...rooms]
+                          .sort((a, b) => {
+                            const aTs = a.createdAt?.seconds || 0;
+                            const bTs = b.createdAt?.seconds || 0;
+                            return bTs - aTs;
+                          })
+                          .map((r, idx) => {
+                            let dateStr = 'Unknown';
+                            if (r.createdAt) {
+                              const dateObj = typeof r.createdAt.toMillis === 'function' 
+                                ? new Date(r.createdAt.toMillis()) 
+                                : new Date((r.createdAt.seconds || 0) * 1000);
+                              dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            }
+                            
+                            let badgeClass = 'badge-guest';
+                            if (r.status === 'playing') badgeClass = 'badge-player';
+                            if (r.status === 'completed') badgeClass = 'badge-top-up';
+                            if (r.status === 'ended') badgeClass = 'badge-spend';
+                            
+                            const isAbandoned = r.status === 'lobby' && 
+                              r.createdAt && 
+                              (typeof r.createdAt.toMillis === 'function' ? r.createdAt.toMillis() : (r.createdAt.seconds || 0) * 1000) < Date.now() - 3600000;
+                              
+                            return (
+                              <tr key={r.code || idx}>
+                                <td style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '15px', color: 'var(--accent2)' }}>{r.code}</td>
+                                <td style={{ fontWeight: 600 }}>{r.hostName || 'Anonymous'}</td>
+                                <td style={{ opacity: 0.7, fontSize: '12.5px' }}>{dateStr}</td>
+                                <td>
+                                  {isAbandoned ? (
+                                    <span className="badge-spend">Abandoned</span>
+                                  ) : (
+                                    <span className={badgeClass}>{r.status}</span>
+                                  )}
+                                </td>
+                                <td>
+                                  {r.settings ? (
+                                    <span style={{ fontSize: '12.5px' }}>
+                                      👤 Max: {r.settings.maxPlayers || 8} | ⏱️ {r.settings.timer || 30}s
+                                    </span>
+                                  ) : (
+                                    <span className="muted">—</span>
+                                  )}
+                                </td>
+                                <td>
+                                  {r.settings && Array.isArray(r.settings.packs) ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                      {r.settings.packs.map((pId: string) => {
+                                        const pName = (packs || []).find(pk => pk.id === pId)?.name || pId;
+                                        return (
+                                          <span 
+                                            key={pId} 
+                                            className="custom-badge" 
+                                            style={{ 
+                                              background: 'rgba(255,255,255,0.06)', 
+                                              color: 'rgba(255,255,255,0.7)',
+                                              fontSize: '10px',
+                                              padding: '1px 5px',
+                                              borderRadius: '3px'
+                                            }}
+                                          >
+                                            {pName}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <span className="muted">None</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              {/* Column 2: Package Popularity Ranking */}
+              <section className="analytics-table-card" style={{ marginBottom: 0 }}>
+                <div className="table-header-row">
+                  <h3 className="table-title">Most Popular Packs in Rooms</h3>
+                </div>
+                
+                <div className="premium-table-wrap">
+                  <table className="premium-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '60px' }}>Rank</th>
+                        <th>Package Name</th>
+                        <th style={{ textAlign: 'right' }}>Rooms Enabled In</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {roomStats.sortedPackUsage.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                            No card package usage recorded yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        roomStats.sortedPackUsage.map((p, idx) => (
+                          <tr key={p.id}>
+                            <td style={{ fontWeight: 800, color: 'var(--accent2)' }}>#{idx + 1}</td>
+                            <td style={{ fontWeight: 600 }}>{p.name}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 700, color: '#00d2ff' }}>
+                              {p.count} room{p.count === 1 ? '' : 's'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </section>
 
