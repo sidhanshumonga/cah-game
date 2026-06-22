@@ -70,6 +70,7 @@ export default function AdminPage() {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationLog, setMigrationLog] = useState<string | null>(null);
 
@@ -87,7 +88,7 @@ export default function AdminPage() {
     return () => { if (unsub) unsub(); };
   }, [isHydrated]);
 
-  // Load purchases, users & rooms in real-time
+  // Load purchases, users, rooms & feedbacks in real-time
   useEffect(() => {
     if (!isHydrated || !account || !account.admin) return;
     
@@ -95,17 +96,19 @@ export default function AdminPage() {
     let unsubAuth: (() => void) | null = null;
 
     const fetchAnalytics = () => {
-      import('@/firebase/firestore').then(({ getPurchases, getAllUsers, getAllRooms }) => {
+      import('@/firebase/firestore').then(({ getPurchases, getAllUsers, getAllRooms, getFeedbacks }) => {
         if (!isSubscribed) return;
-        Promise.all([getPurchases(), getAllUsers(), getAllRooms()]).then(([purchRes, userRes, roomRes]) => {
+        Promise.all([getPurchases(), getAllUsers(), getAllRooms(), getFeedbacks()]).then(([purchRes, userRes, roomRes, feedRes]) => {
           if (!isSubscribed) return;
           const safePurch = Array.isArray(purchRes) ? purchRes : [];
           const safeUsers = Array.isArray(userRes) ? userRes : [];
           const safeRooms = Array.isArray(roomRes) ? roomRes : [];
+          const safeFeed = Array.isArray(feedRes) ? feedRes : [];
           safePurch.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
           setPurchases(safePurch);
           setUsers(safeUsers);
           setRooms(safeRooms);
+          setFeedbacks(safeFeed);
         }).catch(err => console.error("fetchAnalytics failed", err));
       });
     };
@@ -661,50 +664,103 @@ export default function AdminPage() {
                 </div>
               </section>
 
-              {/* Column 2: Players Summary List */}
-              <section className="analytics-table-card" style={{ marginBottom: 0 }}>
-                <div className="table-header-row">
-                  <h3 className="table-title">Registered Players ({filteredUsers.length})</h3>
-                </div>
+              {/* Column 2: Players Directory & User Feedbacks */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* Registered Players Card */}
+                <section className="analytics-table-card" style={{ marginBottom: 0 }}>
+                  <div className="table-header-row">
+                    <h3 className="table-title">Registered Players ({filteredUsers.length})</h3>
+                  </div>
 
-                <div className="premium-table-wrap" style={{ maxHeight: '450px' }}>
-                  {filteredUsers.length === 0 ? (
-                    <p className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
-                      No registered players found.
-                    </p>
-                  ) : (
-                    filteredUsers.map((u, idx) => {
-                      const firstLetter = u.name ? u.name.charAt(0) : (u.email ? u.email.charAt(0) : '?');
-                      const userRole = u.admin ? 'Admin' : (u.guest ? 'Guest' : 'Player');
-                      const roleClass = u.admin ? 'badge-admin' : (u.guest ? 'badge-guest' : 'badge-player');
-                      
-                      return (
-                        <div key={u.uid || idx} className="player-user-row">
-                          <div 
-                            className="player-avatar" 
-                            style={{ background: u.color || '#5c6bc0' }}
-                          >
-                            {firstLetter}
-                          </div>
-                          
-                          <div className="player-info">
-                            <div className="player-name">
-                              <span>{u.name || "Anonymous User"}</span>
-                              <span className={roleClass}>{userRole}</span>
+                  <div className="premium-table-wrap" style={{ maxHeight: '350px' }}>
+                    {filteredUsers.length === 0 ? (
+                      <p className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                        No registered players found.
+                      </p>
+                    ) : (
+                      filteredUsers.map((u, idx) => {
+                        const firstLetter = u.name ? u.name.charAt(0) : (u.email ? u.email.charAt(0) : '?');
+                        const userRole = u.admin ? 'Admin' : (u.guest ? 'Guest' : 'Player');
+                        const roleClass = u.admin ? 'badge-admin' : (u.guest ? 'badge-guest' : 'badge-player');
+                        
+                        return (
+                          <div key={u.uid || idx} className="player-user-row">
+                            <div 
+                              className="player-avatar" 
+                              style={{ background: u.color || '#5c6bc0' }}
+                            >
+                              {firstLetter}
                             </div>
-                            <div className="player-email" title={u.uid}>{u.email || "No email address"}</div>
+                            
+                            <div className="player-info">
+                              <div className="player-name">
+                                <span>{u.name || "Anonymous User"}</span>
+                                <span className={roleClass}>{userRole}</span>
+                              </div>
+                              <div className="player-email" title={u.uid}>{u.email || "No email address"}</div>
+                            </div>
+                            
+                            <div className="player-meta">
+                              <span className="player-coins">{u.credits ?? 0} coins</span>
+                              <span className="player-games">{u.games ?? 0} games</span>
+                            </div>
                           </div>
-                          
-                          <div className="player-meta">
-                            <span className="player-coins">{u.credits ?? 0} coins</span>
-                            <span className="player-games">{u.games ?? 0} games</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </section>
+                        );
+                      })
+                    )}
+                  </div>
+                </section>
+
+                {/* User Feedback Card */}
+                <section className="analytics-table-card" style={{ marginBottom: 0 }}>
+                  <div className="table-header-row">
+                    <h3 className="table-title">User Feedback Ratings ({feedbacks.length})</h3>
+                  </div>
+
+                  <div className="premium-table-wrap" style={{ maxHeight: '350px' }}>
+                    {feedbacks.length === 0 ? (
+                      <p className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                        No user feedback reports submitted yet.
+                      </p>
+                    ) : (
+                      [...feedbacks]
+                        .sort((a, b) => {
+                          const aTs = a.timestamp || 0;
+                          const bTs = b.timestamp || 0;
+                          return bTs - aTs;
+                        })
+                        .map((f, idx) => {
+                          const stars = "★".repeat(f.rating) + "☆".repeat(5 - f.rating);
+                          const isLow = f.rating <= 2;
+                          return (
+                            <div key={f.id || idx} className="player-user-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                <span style={{ color: isLow ? '#ff5c3c' : '#FFC93C', fontWeight: 800, letterSpacing: '2px', fontSize: '13px' }}>
+                                  {stars}
+                                </span>
+                                {f.timestamp && (
+                                  <span style={{ fontSize: '11px', opacity: 0.5 }}>
+                                    {new Date(f.timestamp).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                              <p style={{ margin: '4px 0 0', fontSize: '13px', lineHeight: 1.45, color: '#e0e0e0', textWrap: 'pretty' }}>
+                                "{f.text || 'No comment'}"
+                              </p>
+                              {f.userEmail && (
+                                <span style={{ fontSize: '11px', opacity: 0.4, marginTop: '2px' }}>
+                                  By: {f.userEmail}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+                </section>
+
+              </div>
 
             </div>
           </div>

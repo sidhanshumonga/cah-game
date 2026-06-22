@@ -549,3 +549,14 @@ export async function getAllRooms(): Promise<any[]> {
     return [];
   }
 }
+
+export async function getFeedbacks(): Promise<any[]> {
+  if (!db) return [];
+  try {
+    const snap = await getDocs(collection(db, 'feedback'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.error('getFeedbacks failed', e);
+    return [];
+  }
+}

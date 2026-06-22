@@ -8,9 +8,10 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Feedback: anyone can submit feedback
+    // Feedback: anyone can submit feedback; admin can read
     match /feedback/{feedbackId} {
       allow create: if true;
+      allow read: if request.auth != null && request.auth.token.email == 'sidhanshumonga28@gmail.com';
     }
 
     // Packages: anyone can read; only the admin can write
