@@ -869,7 +869,6 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
     -webkit-overflow-scrolling: touch !important;
     grid-template-columns: none !important;
     grid-auto-rows: unset !important;
-    overscroll-behavior-x: contain !important;
   }
   .hand::-webkit-scrollbar {
     display: none !important;
@@ -984,7 +983,6 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
     width: 100% !important;
     scrollbar-width: none !important;
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-x: contain !important;
     flex-wrap: nowrap !important;
     justify-content: flex-start !important;
     margin-top: 18px !important;
