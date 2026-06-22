@@ -726,31 +726,31 @@ export default function AdminPage() {
                     ) : (
                       [...feedbacks]
                         .sort((a, b) => {
-                          const aTs = a.timestamp || 0;
-                          const bTs = b.timestamp || 0;
-                          return bTs - aTs;
+                          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                          return bTime - aTime;
                         })
                         .map((f, idx) => {
-                          const stars = "★".repeat(f.rating) + "☆".repeat(5 - f.rating);
-                          const isLow = f.rating <= 2;
+                          const stars = "★".repeat(f.rating || 0) + "☆".repeat(5 - (f.rating || 0));
+                          const isLow = f.rating !== undefined && f.rating <= 2;
                           return (
                             <div key={f.id || idx} className="player-user-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                 <span style={{ color: isLow ? '#ff5c3c' : '#FFC93C', fontWeight: 800, letterSpacing: '2px', fontSize: '13px' }}>
                                   {stars}
                                 </span>
-                                {f.timestamp && (
+                                {f.createdAt && (
                                   <span style={{ fontSize: '11px', opacity: 0.5 }}>
-                                    {new Date(f.timestamp).toLocaleDateString()}
+                                    {new Date(f.createdAt).toLocaleDateString()} {new Date(f.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                   </span>
                                 )}
                               </div>
                               <p style={{ margin: '4px 0 0', fontSize: '13px', lineHeight: 1.45, color: '#e0e0e0', textWrap: 'pretty' }}>
-                                "{f.text || 'No comment'}"
+                                "{f.comment || 'No comment'}"
                               </p>
-                              {f.userEmail && (
+                              {f.email && (
                                 <span style={{ fontSize: '11px', opacity: 0.4, marginTop: '2px' }}>
-                                  By: {f.userEmail}
+                                  By: {f.email}
                                 </span>
                               )}
                             </div>
