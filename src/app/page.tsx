@@ -5,41 +5,55 @@ import { useRouter } from 'next/navigation';
 import { useGameContext } from '@/context/GameContext';
 import { Logo, Btn, Avatar, Coin, PromptCard, AnswerCard } from '@/components/components';
 
-const SAMPLE_PAIRS = [
-  { prompt: "My secret talent is ____.", answer: "aggressive interpretive dance" },
-  { prompt: "The real reason I was late today: ____.", answer: "a haunted Roomba" },
-  { prompt: "New from IKEA: the ____.", answer: "decorative gourds" },
-  { prompt: "My villain origin story began with ____.", answer: "a group project" },
-  { prompt: "Rejected ice cream flavor: ____.", answer: "lukewarm soup" },
-  { prompt: "What's that smell? Oh, it's ____.", answer: "my browser history" }
-];
-
-const SAMPLE_CARDS = [
-  { type: 'prompt', text: "My secret talent is ____." },
-  { type: 'answer', text: "aggressive interpretive dance" },
-  { type: 'prompt', text: "The real reason I was late today: ____." },
-  { type: 'answer', text: "a haunted Roomba" },
-  { type: 'prompt', text: "New from IKEA: the ____." },
-  { type: 'answer', text: "decorative gourds" },
-  { type: 'prompt', text: "My villain origin story began with ____." },
-  { type: 'answer', text: "a group project" },
-  { type: 'prompt', text: "Rejected ice cream flavor: ____." },
-  { type: 'answer', text: "lukewarm soup" },
-  { type: 'prompt', text: "What's that smell? Oh, it's ____." },
-  { type: 'answer', text: "my browser history" }
+const DEMO_POOL = [
+  { prompt: "My secret talent is ____.", answer: "Making every situation slightly worse." },
+  { prompt: "The reason I got banned from Thanksgiving dinner was ____.", answer: "An aggressively honest PowerPoint presentation." },
+  { prompt: "My therapist told me to stop blaming ____ for all my problems.", answer: "The consequences of my own actions." },
+  { prompt: "Nothing kills the mood faster than ____.", answer: "Accidentally calling them \"bro.\"" },
+  { prompt: "My dating profile can best be described as ____.", answer: "A collection of red flags with good lighting." },
+  { prompt: "The worst thing to hear during a job interview is ____.", answer: "Can you explain this tweet?" },
+  { prompt: "My retirement plan currently depends on ____.", answer: "Going viral for the wrong reason." },
+  { prompt: "The real reason my last relationship ended was ____.", answer: "Competitive overthinking." },
+  { prompt: "I thought adulthood would involve more success and less ____.", answer: "Pretending to know what I'm doing." },
+  { prompt: "The secret ingredient in every bad decision is ____.", answer: "Free tequila." }
 ];
 
 function SampleDeck() {
   const [i, setI] = useState(0);
   const [dir, setDir] = useState(1); // 1 = forward, -1 = backward
   const [paused, setPaused] = useState(false);
+  
+  // Set default slice for SSR / initial render consistency
+  const [deckPairs, setDeckPairs] = useState(() => DEMO_POOL.slice(0, 6));
+  const [deckCards, setDeckCards] = useState(() => {
+    const flat: any[] = [];
+    DEMO_POOL.slice(0, 6).forEach(pair => {
+      flat.push({ type: 'prompt', text: pair.prompt });
+      flat.push({ type: 'answer', text: pair.answer });
+    });
+    return flat;
+  });
 
   useEffect(() => {
-    if (paused) return;
+    // Select 6 random cards on client-side mount
+    const shuffled = [...DEMO_POOL].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 6);
+    setDeckPairs(selected);
+    
+    const flat: any[] = [];
+    selected.forEach(pair => {
+      flat.push({ type: 'prompt', text: pair.prompt });
+      flat.push({ type: 'answer', text: pair.answer });
+    });
+    setDeckCards(flat);
+  }, []);
+
+  useEffect(() => {
+    if (paused || !deckCards.length) return;
     const t = setInterval(() => {
       setI((prev) => {
         const next = prev + dir;
-        if (next >= SAMPLE_CARDS.length) {
+        if (next >= deckCards.length) {
           setDir(-1);
           return prev - 1;
         } else if (next < 0) {
@@ -50,20 +64,20 @@ function SampleDeck() {
       });
     }, 3000);
     return () => clearInterval(t);
-  }, [paused, dir]);
+  }, [paused, dir, deckCards.length]);
 
   const handleCardClick = (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setI(idx);
-    if (idx === SAMPLE_CARDS.length - 1) {
+    if (idx === deckCards.length - 1) {
       setDir(-1);
     } else if (idx === 0) {
       setDir(1);
     }
   };
 
-  const pairIndex = Math.floor(i / 2) % SAMPLE_PAIRS.length;
-  const pair = SAMPLE_PAIRS[pairIndex];
+  const pairIndex = Math.floor(i / 2) % (deckPairs.length || 1);
+  const pair = deckPairs[pairIndex] || deckPairs[0];
 
   return (
     <div
@@ -74,17 +88,19 @@ function SampleDeck() {
       {/* Desktop view: Static pair */}
       <div 
         className="sample-deck" 
-        onClick={() => setI((prev) => (prev + 2) % SAMPLE_CARDS.length)}
+        onClick={() => setI((prev) => (prev + 2) % (deckCards.length || 1))}
         title="Click for another"
       >
         <span className="sample-kicker">A taste of the deck</span>
-        <div className="sample-cards">
-          <PromptCard key={"p" + pairIndex} text={pair.prompt} small={true} className="sample-prompt" />
-          <span className="sample-plus" aria-hidden="true">+</span>
-          <AnswerCard key={"a" + pairIndex} text={pair.answer} small={true} className="sample-answer" />
-        </div>
+        {pair && (
+          <div className="sample-cards">
+            <PromptCard key={"p" + pairIndex} text={pair.prompt} small={true} className="sample-prompt" />
+            <span className="sample-plus" aria-hidden="true">+</span>
+            <AnswerCard key={"a" + pairIndex} text={pair.answer} small={true} className="sample-answer" />
+          </div>
+        )}
         <div className="sample-dots" aria-hidden="true">
-          {SAMPLE_PAIRS.map((_, k) => (
+          {deckPairs.map((_, k) => (
             <span 
               key={k} 
               className={"sample-dot" + (k === pairIndex ? " sample-dot-on" : "")}
@@ -102,7 +118,7 @@ function SampleDeck() {
             className="sample-carousel-track"
             style={{ "--active-index": i } as React.CSSProperties}
           >
-            {SAMPLE_CARDS.map((card, idx) => {
+            {deckCards.map((card, idx) => {
               const isCenter = idx === i;
               const classes = "carousel-card-wrapper" + (isCenter ? " center" : " side");
               
@@ -123,7 +139,7 @@ function SampleDeck() {
           </div>
         </div>
         <div className="sample-dots" aria-hidden="true">
-          {SAMPLE_CARDS.map((_, k) => (
+          {deckCards.map((_, k) => (
             <span 
               key={k} 
               className={"sample-dot" + (k === i ? " sample-dot-on" : "")}
