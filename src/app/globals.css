@@ -876,6 +876,7 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   }
   .hand-slot {
     flex: 0 0 180px !important;
+    width: 180px !important;
     scroll-snap-align: center !important;
     transform: none !important;
     margin: 0 !important;
