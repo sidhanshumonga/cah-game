@@ -1014,6 +1014,30 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
     text-align: center;
   }
 
+  /* End Page stats and actions mobile fixes */
+  .end-stats {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 380px !important;
+    margin: 24px auto 0 !important;
+    gap: 10px !important;
+  }
+  .stat-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .end-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 380px !important;
+    margin: 30px auto 0 !important;
+    gap: 10px !important;
+  }
+
   /* Create Room Page mobile fixes */
   .create-screen { padding: 16px 20px 36px; }
   .create-title { margin-bottom: 20px; font-size: 28px; text-align: center; }
