@@ -232,6 +232,17 @@ function MultiplayerGame({ code }: { code: string }) {
     return () => subs.forEach(u => u());
   }, [code, isHydrated, router]);
 
+  // Prevent non-member players from entering the game page
+  useEffect(() => {
+    if (!isHydrated || !roomLoaded || !roomExists || !gameState) return;
+    if (gameState.originalPlayers) {
+      const isMember = gameState.originalPlayers.includes(myUid);
+      if (!isMember) {
+        router.replace('/');
+      }
+    }
+  }, [isHydrated, roomLoaded, roomExists, gameState, myUid, router]);
+
   // Sync unread messages count
   useEffect(() => {
     if (chatOpen) {

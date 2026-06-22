@@ -88,6 +88,9 @@ input { font-family: inherit; }
   box-shadow: 0 10px 24px -12px rgba(0,0,0,0.3);
   transition: transform calc(var(--m) * 0.2s) cubic-bezier(.2,.8,.3,1), box-shadow calc(var(--m) * 0.2s), outline-color 0.15s; }
 .acard-text { font-family: var(--font-d); font-weight: 600; font-size: 19px; line-height: 1.25; text-wrap: pretty; }
+.acard-text.card-text-short, .pcard-text.card-text-short { font-size: 23px !important; }
+.acard-text.card-text-medium, .pcard-text.card-text-medium { font-size: 19px !important; }
+.acard-text.card-text-long, .pcard-text.card-text-long { font-size: 15px !important; }
 button.acard:hover { transform: translateY(-12px) scale(1.03); box-shadow: 0 26px 40px -16px rgba(0,0,0,0.4); z-index: 3; position: relative; }
 .acard-selected { outline: 3px solid var(--accent); outline-offset: 2px; transform: translateY(-18px) scale(1.04); z-index: 4; position: relative;
   box-shadow: 0 30px 44px -16px rgba(0,0,0,0.45); }
@@ -971,9 +974,30 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
     aspect-ratio: auto !important;
   }
   .judge-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    scroll-behavior: smooth !important;
     gap: 12px !important;
+    padding: 30px calc(50% - 90px) 20px !important;
+    width: 100% !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
     margin-top: 18px !important;
   }
+  .judge-grid::-webkit-scrollbar {
+    display: none !important;
+  }
+  .judge-grid .flipwrap {
+    flex: 0 0 180px !important;
+    scroll-snap-align: center !important;
+  }
+  .acard-text.card-text-short, .pcard-text.card-text-short { font-size: 18px !important; }
+  .acard-text.card-text-medium, .pcard-text.card-text-medium { font-size: 15px !important; }
+  .acard-text.card-text-long, .pcard-text.card-text-long { font-size: 12px !important; }
   .pcard { width: 220px; min-height: 120px; padding: 14px; }
   .pcard-text { font-size: 18px; }
   .timerbar { max-width: 80vw; }

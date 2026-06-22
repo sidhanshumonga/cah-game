@@ -140,9 +140,12 @@ interface PromptCardProps {
 }
 
 export function PromptCard({ text, fill, small, className }: PromptCardProps) {
+  const isShort = text.length < 35;
+  const isMedium = text.length >= 35 && text.length < 70;
+  const sizeClass = isShort ? " card-text-short" : isMedium ? " card-text-medium" : " card-text-long";
   return (
     <div className={"pcard" + (small ? " pcard-small" : "") + (className ? " " + className : "")}>
-      <div className="pcard-text"><PromptText text={text} fill={fill} /></div>
+      <div className={"pcard-text" + sizeClass}><PromptText text={text} fill={fill} /></div>
       <div className="card-foot"><Logo /></div>
     </div>
   );
@@ -161,6 +164,9 @@ interface AnswerCardProps {
 }
 
 export function AnswerCard({ text, selected, dimmed, winner, small, onClick, className, style }: AnswerCardProps) {
+  const isShort = text.length < 30;
+  const isMedium = text.length >= 30 && text.length < 60;
+  const sizeClass = isShort ? " card-text-short" : isMedium ? " card-text-medium" : " card-text-long";
   const cls =
     "acard" +
     (selected ? " acard-selected" : "") +
@@ -171,14 +177,14 @@ export function AnswerCard({ text, selected, dimmed, winner, small, onClick, cla
   if (onClick) {
     return (
       <button className={cls} style={style} onClick={onClick}>
-        <span className="acard-text">{text}</span>
+        <span className={"acard-text" + sizeClass}>{text}</span>
         <span className="card-foot card-foot-light"><Logo /></span>
       </button>
     );
   }
   return (
     <div className={cls} style={style}>
-      <span className="acard-text">{text}</span>
+      <span className={"acard-text" + sizeClass}>{text}</span>
       <span className="card-foot card-foot-light"><Logo /></span>
     </div>
   );
@@ -196,13 +202,16 @@ interface FlipCardProps {
 }
 
 export function FlipCard({ text, flipped, winner, dimmed, onClick, delay, clickable }: FlipCardProps) {
+  const isShort = text.length < 30;
+  const isMedium = text.length >= 30 && text.length < 60;
+  const sizeClass = isShort ? " card-text-short" : isMedium ? " card-text-medium" : " card-text-long";
   const inner = (
     <span className="flip-inner" style={{ transitionDelay: flipped && delay ? delay : "0s" }}>
       <span className="flip-face flip-back">
         <span className="flip-mark">cah<span className="flip-dot">.</span></span>
       </span>
       <span className="flip-face flip-front">
-        <span className="acard-text">{text}</span>
+        <span className={"acard-text" + sizeClass}>{text}</span>
       </span>
     </span>
   );
