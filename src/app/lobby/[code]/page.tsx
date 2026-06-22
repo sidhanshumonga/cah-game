@@ -73,11 +73,18 @@ export default function LobbyPage() {
   const [roomStatus, setRoomStatus] = useState<string>('lobby');
   const [roomExists, setRoomExists] = useState<boolean | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth > 880) {
+      setChatOpen(true);
+    }
+  }, []);
 
   // Refs for tracking status across unmount
   const statusRef = useRef('lobby');
@@ -401,6 +408,9 @@ export default function LobbyPage() {
             🔴 Live
           </span>
         )}
+        <button className="chip lobby-chat-toggle-btn" onClick={() => setChatOpen(!chatOpen)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          💬 Chat
+        </button>
         <button className="iconbtn lobby-leave" onClick={handleLeave} aria-label="Leave room">✕</button>
       </div>
 
@@ -488,32 +498,40 @@ export default function LobbyPage() {
           </div>
         </section>
 
-        <aside className="lobby-chat">
-          <h3 className="lobby-sec-title">Chat</h3>
-          <div className="chat-msgs">
-            {displayMsgs.map((m) => {
-              const isMe = m.uid === myUid;
-              return (
-                <div key={m.id} className={"chat-msg" + (isMe ? " chat-mine" : "")}>
-                  <Avatar player={{ name: isMe ? "You" : m.name, color: m.color }} size={26} />
-                  <span className="chat-bubble"><b>{isMe ? "You" : m.name}</b> {m.text}</span>
-                </div>
-              );
-            })}
-            {displayMsgs.length === 0 ? <p className="muted chat-empty">Say hi while everyone joins…</p> : null}
-            <div ref={chatBottomRef} />
-          </div>
-          <div className="chat-inputrow">
-            <input
-              className="input chat-input"
-              placeholder="Message…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") sendChat(); }}
-            />
-            <Btn onClick={sendChat}>Send</Btn>
-          </div>
-        </aside>
+        {chatOpen && (
+          <>
+            <div className="chat-scrim" onClick={() => setChatOpen(false)}></div>
+            <aside className="lobby-chat lobby-chat-drawer">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 className="lobby-sec-title" style={{ margin: 0 }}>Chat</h3>
+                <button className="iconbtn" onClick={() => setChatOpen(false)} aria-label="Close chat" style={{ padding: '4px 8px', fontSize: '16px' }}>✕</button>
+              </div>
+              <div className="chat-msgs">
+                {displayMsgs.map((m) => {
+                  const isMe = m.uid === myUid;
+                  return (
+                    <div key={m.id} className={"chat-msg" + (isMe ? " chat-mine" : "")}>
+                      <Avatar player={{ name: isMe ? "You" : m.name, color: m.color }} size={26} />
+                      <span className="chat-bubble"><b>{isMe ? "You" : m.name}</b> {m.text}</span>
+                    </div>
+                  );
+                })}
+                {displayMsgs.length === 0 ? <p className="muted chat-empty">Say hi while everyone joins…</p> : null}
+                <div ref={chatBottomRef} />
+              </div>
+              <div className="chat-inputrow">
+                <input
+                  className="input chat-input"
+                  placeholder="Message…"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") sendChat(); }}
+                />
+                <Btn onClick={sendChat}>Send</Btn>
+              </div>
+            </aside>
+          </>
+        )}
       </div>
 
       <EditSettingsModal
@@ -684,26 +702,7 @@ function EditSettingsModal({ open, settings, onClose, onSave, packs: allPacks, a
   return (
     <React.Fragment>
       <div className="scrim scrim-open" style={{ zIndex: 110 }} onClick={onClose}></div>
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 111,
-        background: 'var(--dark)',
-        color: 'var(--fg)',
-        borderRadius: '24px',
-        padding: '30px 32px',
-        width: '760px',
-        maxWidth: '92vw',
-        maxHeight: '85vh',
-        boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        overflowY: 'auto'
-      }}>
+      <div className="settings-modal">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '22px', fontWeight: 800, margin: 0 }}>Edit Room Settings</h3>
           <button className="iconbtn" onClick={onClose} aria-label="Close" style={{ fontSize: '18px' }}>✕</button>

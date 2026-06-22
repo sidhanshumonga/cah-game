@@ -14,34 +14,123 @@ const SAMPLE_PAIRS = [
   { prompt: "What's that smell? Oh, it's ____.", answer: "my browser history" }
 ];
 
+const SAMPLE_CARDS = [
+  { type: 'prompt', text: "My secret talent is ____." },
+  { type: 'answer', text: "aggressive interpretive dance" },
+  { type: 'prompt', text: "The real reason I was late today: ____." },
+  { type: 'answer', text: "a haunted Roomba" },
+  { type: 'prompt', text: "New from IKEA: the ____." },
+  { type: 'answer', text: "decorative gourds" },
+  { type: 'prompt', text: "My villain origin story began with ____." },
+  { type: 'answer', text: "a group project" },
+  { type: 'prompt', text: "Rejected ice cream flavor: ____." },
+  { type: 'answer', text: "lukewarm soup" },
+  { type: 'prompt', text: "What's that smell? Oh, it's ____." },
+  { type: 'answer', text: "my browser history" }
+];
+
 function SampleDeck() {
   const [i, setI] = useState(0);
+  const [dir, setDir] = useState(1); // 1 = forward, -1 = backward
   const [paused, setPaused] = useState(false);
+
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(() => setI((n) => (n + 1) % SAMPLE_PAIRS.length), 3400);
+    const t = setInterval(() => {
+      setI((prev) => {
+        const next = prev + dir;
+        if (next >= SAMPLE_CARDS.length) {
+          setDir(-1);
+          return prev - 1;
+        } else if (next < 0) {
+          setDir(1);
+          return prev + 1;
+        }
+        return next;
+      });
+    }, 3000);
     return () => clearInterval(t);
-  }, [paused]);
-  const pair = SAMPLE_PAIRS[i];
-  function advance() { setI((n) => (n + 1) % SAMPLE_PAIRS.length); }
+  }, [paused, dir]);
+
+  const handleCardClick = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setI(idx);
+    if (idx === SAMPLE_CARDS.length - 1) {
+      setDir(-1);
+    } else if (idx === 0) {
+      setDir(1);
+    }
+  };
+
+  const pairIndex = Math.floor(i / 2) % SAMPLE_PAIRS.length;
+  const pair = SAMPLE_PAIRS[pairIndex];
+
   return (
     <div
-      className="sample-deck"
-      onClick={advance}
+      className="sample-deck-container"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      title="Click for another"
     >
-      <span className="sample-kicker">A taste of the deck</span>
-      <div className="sample-cards">
-        <PromptCard key={"p" + i} text={pair.prompt} small={true} className="sample-prompt" />
-        <span className="sample-plus" aria-hidden="true">+</span>
-        <AnswerCard key={"a" + i} text={pair.answer} small={true} className="sample-answer" />
+      {/* Desktop view: Static pair */}
+      <div 
+        className="sample-deck" 
+        onClick={() => setI((prev) => (prev + 2) % SAMPLE_CARDS.length)}
+        title="Click for another"
+      >
+        <span className="sample-kicker">A taste of the deck</span>
+        <div className="sample-cards">
+          <PromptCard key={"p" + pairIndex} text={pair.prompt} small={true} className="sample-prompt" />
+          <span className="sample-plus" aria-hidden="true">+</span>
+          <AnswerCard key={"a" + pairIndex} text={pair.answer} small={true} className="sample-answer" />
+        </div>
+        <div className="sample-dots" aria-hidden="true">
+          {SAMPLE_PAIRS.map((_, k) => (
+            <span 
+              key={k} 
+              className={"sample-dot" + (k === pairIndex ? " sample-dot-on" : "")}
+              onClick={(e) => { e.stopPropagation(); setI(k * 2); }}
+            ></span>
+          ))}
+        </div>
       </div>
-      <div className="sample-dots" aria-hidden="true">
-        {SAMPLE_PAIRS.map((_, k) => (
-          <span key={k} className={"sample-dot" + (k === i ? " sample-dot-on" : "")}></span>
-        ))}
+
+      {/* Mobile view: Carousel */}
+      <div className="sample-deck-carousel">
+        <span className="sample-kicker">A taste of the deck</span>
+        <div className="sample-carousel-viewport">
+          <div 
+            className="sample-carousel-track"
+            style={{ "--active-index": i } as React.CSSProperties}
+          >
+            {SAMPLE_CARDS.map((card, idx) => {
+              const isCenter = idx === i;
+              const classes = "carousel-card-wrapper" + (isCenter ? " center" : " side");
+              
+              return (
+                <div 
+                  key={idx} 
+                  className={classes}
+                  onClick={(e) => handleCardClick(idx, e)}
+                >
+                  {card.type === 'prompt' ? (
+                    <PromptCard text={card.text} small={true} />
+                  ) : (
+                    <AnswerCard text={card.text} small={true} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="sample-dots" aria-hidden="true">
+          {SAMPLE_CARDS.map((_, k) => (
+            <span 
+              key={k} 
+              className={"sample-dot" + (k === i ? " sample-dot-on" : "")}
+              onClick={(e) => handleCardClick(k, e)}
+            ></span>
+          ))}
+        </div>
       </div>
     </div>
   );

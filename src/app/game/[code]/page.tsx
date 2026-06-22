@@ -145,6 +145,30 @@ function MultiplayerGame({ code }: { code: string }) {
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const lastMsgCountRef = useRef(0);
 
+  // Hand horizontal scroll arrow states
+  const handRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  const checkHandScroll = useCallback(() => {
+    const el = handRef.current;
+    if (!el) return;
+    setShowLeftArrow(el.scrollLeft > 10);
+    setShowRightArrow(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  }, []);
+
+  useEffect(() => {
+    const el = handRef.current;
+    if (!el) return;
+    checkHandScroll();
+    el.addEventListener('scroll', checkHandScroll);
+    window.addEventListener('resize', checkHandScroll);
+    return () => {
+      el.removeEventListener('scroll', checkHandScroll);
+      window.removeEventListener('resize', checkHandScroll);
+    };
+  }, [hand, checkHandScroll]);
+
   // Subscribe to room + game state + room players + chat + reactions
   useEffect(() => {
     if (!isHydrated) return;
@@ -707,17 +731,39 @@ function MultiplayerGame({ code }: { code: string }) {
                       </button>
                     ) : null}
                   </div>
-                  <div className="hand">
-                    {hand.map((c, i) => (
-                      <div key={c + i} className="hand-slot" style={{ "--rot": (i - mid) * 4 + "deg", "--ty": Math.abs(i - mid) * 9 + "px", "--dl": i * 70 + "ms" } as React.CSSProperties}>
-                        <AnswerCard text={c} selected={!swapMode && myPick === c} className={swapMode && swapPicks.includes(i) ? "acard-swapsel" : ""} onClick={() => (swapMode ? toggleSwapPick(i) : setMyPick(myPick === c ? null : c))} />
-                      </div>
-                    ))}
+                   <div className="mobile-hand-wrapper">
+                    {showLeftArrow && (
+                      <button 
+                        type="button" 
+                        className="hand-scroll-arrow left" 
+                        onClick={() => handRef.current?.scrollBy({ left: -140, behavior: 'smooth' })}
+                        aria-label="Scroll left"
+                      >
+                        ‹
+                      </button>
+                    )}
+                    <div className="hand" ref={handRef}>
+                      {hand.map((c, i) => (
+                        <div key={c + i} className="hand-slot" style={{ "--rot": (i - mid) * 4 + "deg", "--ty": Math.abs(i - mid) * 9 + "px", "--dl": i * 70 + "ms" } as React.CSSProperties}>
+                          <AnswerCard text={c} selected={!swapMode && myPick === c} className={swapMode && swapPicks.includes(i) ? "acard-swapsel" : ""} onClick={() => (swapMode ? toggleSwapPick(i) : setMyPick(myPick === c ? null : c))} />
+                        </div>
+                      ))}
+                    </div>
+                    {showRightArrow && (
+                      <button 
+                        type="button" 
+                        className="hand-scroll-arrow right" 
+                        onClick={() => handRef.current?.scrollBy({ left: 140, behavior: 'smooth' })}
+                        aria-label="Scroll right"
+                      >
+                        ›
+                      </button>
+                    )}
                   </div>
                   <div className={"confirm-bar" + (swapMode || myPick ? " confirm-show" : "")}>
                     {swapMode ? (
                       <div className="swap-actions">
-                        <Btn big={true} variant="accent" disabled={!swapPicks.length} onClick={doSwap}>Replace {swapPicks.length || ""} card{swapPicks.length === 1 ? "" : "s"}</Btn>
+                        <Btn big={true} variant="accent" disabled={!swapPicks.length} onClick={doSwap}>Lock in swap{swapPicks.length ? ` (${swapPicks.length})` : ""}</Btn>
                         <Btn big={true} variant="secondary" onClick={() => { setSwapMode(false); setSwapPicks([]); }}>Cancel</Btn>
                       </div>
                     ) : (
@@ -826,7 +872,7 @@ function MultiplayerGame({ code }: { code: string }) {
                   const isWinner = s.uid === gameState?.winnerUid;
                   const submitter = roomPlayers.find(p => p.uid === s.uid) || { name: s.name, color: '#ccc' };
                   return (
-                    <div key={s.uid} className="reveal-card-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <div key={s.uid} className="reveal-card-wrapper">
                       <AnswerCard
                         text={s.text}
                         small={true}
