@@ -474,6 +474,7 @@ function MultiplayerGame({ code }: { code: string }) {
       isBot: !!p.isBot,
       isConnected: p.isConnected !== false, // Default to true
       left: !!p.left,
+      isHost: !!p.isHost,
     }));
   }, [roomPlayers, myUid, gameState?.scores]);
 

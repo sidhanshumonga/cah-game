@@ -37,6 +37,7 @@ export interface Player {
   isBot?: boolean;
   isConnected?: boolean;
   left?: boolean;
+  isHost?: boolean;
 }
 
 export interface HistoryEntry {

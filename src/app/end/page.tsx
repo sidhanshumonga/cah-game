@@ -40,12 +40,16 @@ export default function EndPage() {
   }, [isHydrated, endData, router]);
 
   const myUid = account?.uid || account?.email || "guest";
-  const isHost = roomData ? roomData.hostUid === myUid : false;
 
   const sorted = useMemo(() => {
     if (!endData) return [];
     return [...endData.players].sort((a, b) => b.score - a.score);
   }, [endData]);
+
+  const isHost = useMemo(() => {
+    if (roomData) return roomData.hostUid === myUid;
+    return sorted.find(p => p.isYou)?.isHost || false;
+  }, [roomData, myUid, sorted]);
 
   const stats = useMemo(() => {
     if (!endData || sorted.length === 0) return [];
