@@ -794,7 +794,20 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   animation: plusPop calc(var(--m) * 0.6s) cubic-bezier(.2,1.6,.4,1) 0.25s both; }
 @keyframes plusPop { from { transform: scale(0) rotate(-20deg); opacity: 0; } }
 .reveal-prompt { width: 360px; animation: popIn calc(var(--m) * 0.5s) cubic-bezier(.2,1.2,.3,1) 0.1s both; }
-.reveal-others { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 26px; }
+.reveal-others {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 12px;
+  justify-content: safe center;
+  margin-top: 26px;
+  width: 100%;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.reveal-others::-webkit-scrollbar {
+  display: none;
+}
 .reveal-foot { display: flex; align-items: center; gap: 26px; margin-top: 32px; flex-wrap: wrap; justify-content: center; }
 
 /* ---------- End screen ---------- */
@@ -1001,6 +1014,27 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   .pcard-text { font-size: 18px; }
   .timerbar { max-width: 80vw; }
   .reveal-prompt { width: 290px; }
+  .reveal-others {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    scroll-behavior: smooth !important;
+    gap: 12px !important;
+    padding: 30px calc(50% - 90px) 20px !important;
+    width: 100% !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    margin-top: 18px !important;
+  }
+  .reveal-others::-webkit-scrollbar {
+    display: none !important;
+  }
+  .reveal-others .reveal-card-wrapper {
+    flex: 0 0 180px !important;
+    scroll-snap-align: center !important;
+  }
   .bgcard { display: none; }
   .podium-block { width: 90px; }
 
