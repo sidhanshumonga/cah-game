@@ -135,8 +135,9 @@ export default function LobbyPage() {
 
       // Subscribe to room doc (to detect game start & settings sync)
       subs.push(subscribeRoom(code, (data) => {
-        if (!data) {
+        if (!data || data.status === 'closed') {
           setRoomExists(false);
+          router.push('/');
           return;
         }
         setRoomExists(true);

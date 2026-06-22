@@ -178,9 +178,10 @@ function MultiplayerGame({ code }: { code: string }) {
       const { subscribeGameState, subscribeRoomPlayers, subscribeRoomChat, subscribeReactions, subscribeRoom } = await import('@/firebase/firestore');
 
       subs.push(subscribeRoom(code, (roomData) => {
-        if (!roomData) {
+        if (!roomData || roomData.status === 'closed') {
           setRoomExists(false);
           setRoomLoaded(true);
+          router.push('/');
           return;
         }
         setRoomExists(true);

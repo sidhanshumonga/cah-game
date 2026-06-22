@@ -24,7 +24,10 @@ export default function EndPage() {
     async function listenToRoom() {
       const { subscribeRoom } = await import('@/firebase/firestore');
       unsubscribe = subscribeRoom(endData.code, (roomData) => {
-        if (!roomData) return;
+        if (!roomData || roomData.status === 'closed') {
+          router.push('/');
+          return;
+        }
         setRoomData(roomData);
         if (roomData.status === 'lobby') {
           router.push(`/lobby/${endData.code}`);
@@ -101,7 +104,15 @@ export default function EndPage() {
     }
   };
 
-  const handleHome = () => {
+  const handleHome = async () => {
+    if (isHost && endData?.code) {
+      try {
+        const { updateRoom } = await import('@/firebase/firestore');
+        await updateRoom(endData.code, { status: 'closed' });
+      } catch (e) {
+        console.error("Failed to close room", e);
+      }
+    }
     router.push('/');
   };
 
