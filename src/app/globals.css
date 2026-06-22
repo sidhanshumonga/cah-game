@@ -860,12 +860,13 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
     scroll-snap-type: x mandatory !important;
     scroll-behavior: smooth !important;
     gap: 12px !important;
-    padding: 30px 36px 20px !important;
+    padding: 30px calc(50% - 90px) 20px !important;
     width: 100% !important;
     scrollbar-width: none !important;
     -webkit-overflow-scrolling: touch !important;
     grid-template-columns: none !important;
     grid-auto-rows: unset !important;
+    overscroll-behavior-x: contain !important;
   }
   .hand::-webkit-scrollbar {
     display: none !important;
