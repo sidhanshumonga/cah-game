@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { getAuth } from 'firebase-admin/auth';
+import '@/firebase/admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-01-27.acacia' as any,
@@ -36,8 +38,32 @@ export async function POST(req: Request) {
   try {
     const { productId, coins, uid, email, currency } = await req.json();
 
-    if (!productId || !coins || !uid) {
+    if (!productId || !coins) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    }
+
+    const isFirebaseEnabled = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    let targetUid = uid;
+    let targetEmail = email || '';
+
+    if (isFirebaseEnabled) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Unauthorized: Missing token' }, { status: 401 });
+      }
+      const idToken = authHeader.substring(7);
+      try {
+        const decodedToken = await getAuth().verifyIdToken(idToken);
+        targetUid = decodedToken.uid;
+        targetEmail = decodedToken.email || '';
+      } catch (authErr: any) {
+        console.error('[checkout-api] Token verification failed:', authErr.message);
+        return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+      }
+    }
+
+    if (!targetUid) {
+      return NextResponse.json({ error: 'Bad Request: Missing user identity' }, { status: 400 });
     }
 
     const origin = req.headers.get('origin') || 'http://localhost:3000';
@@ -66,9 +92,9 @@ export async function POST(req: Request) {
         },
       ],
       mode: 'payment',
-      customer_email: email || undefined,
+      customer_email: targetEmail || undefined,
       metadata: {
-        uid,
+        uid: targetUid,
         coins: String(coins),
       },
       success_url: `${origin}/coins?success=true`,

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/firebase/config';
-import { collection, addDoc } from 'firebase/firestore';
+import { adminDb } from '@/firebase/admin';
 
 export async function POST(req: Request) {
   try {
@@ -11,13 +10,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing feedback text or rating' }, { status: 400 });
     }
 
-    if (!db) {
-      console.error('[feedback] SKIP — Firestore db is null. Check Firebase config env variables.');
-      return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
-    }
-
-    const feedbackRef = collection(db, 'feedback');
-    await addDoc(feedbackRef, {
+    const feedbackRef = adminDb.collection('feedback');
+    await feedbackRef.add({
       rating: rating !== undefined ? Number(rating) : null,
       comment: comment || "",
       uid: uid || null,

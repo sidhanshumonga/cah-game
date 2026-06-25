@@ -17,9 +17,9 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Feedback: anyone can submit feedback; admin can read
+    // Feedback: only the admin can read directly; writes must go through verified API
     match /feedback/{feedbackId} {
-      allow create: if true;
+      allow create, update, delete: if false;
       allow read: if request.auth != null && request.auth.token.email == 'sidhanshumonga28@gmail.com';
     }
 
@@ -29,31 +29,49 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.email == 'sidhanshumonga28@gmail.com';
     }
 
-    // Purchases: authenticated users can write/read their own purchases; admin role can read all
+    // Purchases: only server-side writes; users can read their own, admin can read all
     match /purchases/{purchaseId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
       allow read: if request.auth != null && (request.auth.token.email == 'sidhanshumonga28@gmail.com' || resource.data.userId == request.auth.uid);
-      allow update, delete: if false;
     }
 
-    // Rooms: anyone can read and write to support guest sessions
+    // Rooms: guests get single rooms, admin lists, host creates/updates settings
     match /rooms/{code} {
-      allow read, write: if true;
+      allow get: if true;
+      allow list: if request.auth != null && request.auth.token.email == 'sidhanshumonga28@gmail.com';
+      allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
+      allow update: if request.auth != null && resource.data.hostUid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
 
       match /players/{uid} {
-        allow read, write: if true;
+        allow read: if true;
+        allow write: if request.auth != null && (
+          request.auth.uid == uid ||
+          get(/databases/$(database)/documents/rooms/$(code)).data.hostUid == request.auth.uid
+        );
       }
 
       match /chat/{msgId} {
-        allow read, write: if true;
+        allow read: if true;
+        allow create: if request.auth != null && (
+          exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))
+        );
+        allow update, delete: if false;
       }
 
       match /reactions/{reactionId} {
-        allow read, write: if true;
+        allow read: if true;
+        allow create: if request.auth != null && (
+          exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))
+        );
+        allow update, delete: if false;
       }
 
       match /gameState/{doc} {
-        allow read, write: if true;
+        allow read: if true;
+        allow write: if request.auth != null && (
+          exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))
+        );
       }
     }
   }

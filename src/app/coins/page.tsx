@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameContext, getUserRegion, RegionInfo } from '@/context/GameContext';
 import { Logo, Btn, Coin } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
+import { auth, isFirebaseEnabled } from '@/firebase/config';
 
 export default function CoinsPage() {
   const router = useRouter();
@@ -60,16 +61,16 @@ export default function CoinsPage() {
     }
     setLoadingBundle(b.coins);
     try {
+      const idToken = isFirebaseEnabled && auth?.currentUser ? await auth.currentUser.getIdToken() : '';
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
           productId: b.productId,
           coins: b.coins,
-          uid: account.uid,
-          email: account.email || '',
           currency: userRegion.currency,
         }),
       });
