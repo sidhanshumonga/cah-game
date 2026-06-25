@@ -65,7 +65,7 @@ export default function FeedbackBanner() {
         <div className="feedback-banner">
           <span className="feedback-banner-text">
             <Megaphone className="inline-icon" size={14} /> We hear your feedback! Drop your <button className="feedback-banner-link" onClick={() => setOpen(true)}>feedback or suggestions</button> here. 
-            <strong> Next up: Bots coming soon! <Bot className="inline-icon" size={14} /></strong>
+            <strong> Bots are now live! Next up: Smart AI Bots coming soon! <Bot className="inline-icon" size={14} /></strong>
           </span>
           <button type="button" className="feedback-banner-close" onClick={handleDismiss} aria-label="Close banner">✕</button>
         </div>
