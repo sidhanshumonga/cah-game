@@ -1532,6 +1532,7 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
 }
 .stat-card-usd::before { background: #2bc4be; }
 .stat-card-inr::before { background: #00d2ff; }
+.stat-card-gbp::before { background: #a855f7; }
 .stat-card-bought::before { background: #ffc93c; }
 .stat-card-spent::before { background: #ff5c3c; }
 .stat-card-packs::before { background: #8f7bff; }

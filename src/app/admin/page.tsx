@@ -162,6 +162,7 @@ export default function AdminPage() {
   const stats = useMemo(() => {
     let usdRevenue = 0;
     let inrRevenue = 0;
+    let gbpRevenue = 0;
     let coinsBought = 0;
     let coinsSpent = 0;
     let packsSpentCount = 0;
@@ -172,8 +173,10 @@ export default function AdminPage() {
         if (!p) return;
         if (p.type === 'top-up') {
           coinsBought += p.coinsAwarded || 0;
-          if (p.currency === 'USD') usdRevenue += p.cost || 0;
-          if (p.currency === 'INR') inrRevenue += p.cost || 0;
+          const cur = p.currency ? p.currency.toUpperCase() : '';
+          if (cur === 'USD') usdRevenue += p.cost || 0;
+          else if (cur === 'INR') inrRevenue += p.cost || 0;
+          else if (cur === 'GBP') gbpRevenue += p.cost || 0;
         } else if (p.type === 'spend') {
           coinsSpent += p.cost || 0;
           if (p.itemType === 'pack') packsSpentCount++;
@@ -182,7 +185,7 @@ export default function AdminPage() {
       });
     }
 
-    return { usdRevenue, inrRevenue, coinsBought, coinsSpent, packsSpentCount, upgradesSpentCount };
+    return { usdRevenue, inrRevenue, gbpRevenue, coinsBought, coinsSpent, packsSpentCount, upgradesSpentCount };
   }, [filteredPurchases]);
 
   const processedTransactions = useMemo(() => {
@@ -531,6 +534,10 @@ export default function AdminPage() {
                 <span className="premium-stat-value">₹{stats.inrRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                 <span className="premium-stat-label">INR Revenue</span>
               </div>
+              <div className="premium-stat-card stat-card-gbp">
+                <span className="premium-stat-value">£{stats.gbpRevenue.toFixed(2)}</span>
+                <span className="premium-stat-label">GBP Revenue</span>
+              </div>
               <div className="premium-stat-card stat-card-bought">
                 <span className="premium-stat-value">{stats.coinsBought.toLocaleString()}</span>
                 <span className="premium-stat-label">Coins Purchased</span>
@@ -649,8 +656,10 @@ export default function AdminPage() {
                               <td style={{ fontWeight: 700 }}>
                                 {p.currency === 'coins' ? (
                                   <span style={{ color: '#FFC93C' }}>{p.cost} coins</span>
-                                ) : p.currency === 'USD' ? (
+                                ) : p.currency?.toUpperCase() === 'USD' ? (
                                   <span style={{ color: '#2BC4BE' }}>${p.cost.toFixed(2)}</span>
+                                ) : p.currency?.toUpperCase() === 'GBP' ? (
+                                  <span style={{ color: '#A855F7' }}>£{p.cost.toFixed(2)}</span>
                                 ) : (
                                   <span style={{ color: '#00D2FF' }}>₹{p.cost.toFixed(0)}</span>
                                 )}
