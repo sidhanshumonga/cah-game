@@ -220,13 +220,18 @@ export default function LobbyPage() {
       if (account && !hasJoined) {
         const uid = account.uid || account.email;
         const hostUid = await getHostUid(code);
-        await joinRoom(code, {
-          uid,
-          name: account.name,
-          color: account.color,
-          isHost: uid === hostUid,
-        });
-        setHasJoined(true);
+        try {
+          await joinRoom(code, {
+            uid,
+            name: account.name,
+            color: account.color,
+            isHost: uid === hostUid,
+          });
+          setHasJoined(true);
+        } catch (joinErr: any) {
+          console.error('[lobby] Failed to join room:', joinErr);
+          alert('Failed to join the room. Please refresh or try again.');
+        }
       }
     }
 

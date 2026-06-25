@@ -62,9 +62,10 @@ export default function FeedbackBanner() {
     <React.Fragment>
       {/* 1. Global Dismissible Banner */}
       {!dismissed && (
-        <div className="feedback-banner" style={{ background: 'linear-gradient(90deg, #b91c1c 0%, #1e1b4b 100%)' }}>
+        <div className="feedback-banner">
           <span className="feedback-banner-text">
-            <Megaphone className="inline-icon" size={14} /> <strong>We are facing difficulties with joining rooms, fixing it!</strong> Drop your <button className="feedback-banner-link" onClick={() => setOpen(true)}>feedback or suggestions</button> here.
+            <Megaphone className="inline-icon" size={14} /> <strong>Joining issues are now resolved!</strong> Drop your <button className="feedback-banner-link" onClick={() => setOpen(true)}>feedback or suggestions</button> here. 
+            <strong> Bots are now live! Next up: Smart AI Bots coming soon! <Bot className="inline-icon" size={14} /></strong>
           </span>
           <button type="button" className="feedback-banner-close" onClick={handleDismiss} aria-label="Close banner">✕</button>
         </div>

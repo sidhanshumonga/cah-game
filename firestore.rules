@@ -45,32 +45,47 @@ service cloud.firestore {
 
       match /players/{uid} {
         allow read: if true;
-        allow write: if request.auth != null && (
-          request.auth.uid == uid ||
-          get(/databases/$(database)/documents/rooms/$(code)).data.hostUid == request.auth.uid
+        allow write: if (
+          // Authenticated user: can write their own doc, or host can write any player doc
+          (request.auth != null && (
+            request.auth.uid == uid ||
+            get(/databases/$(database)/documents/rooms/$(code)).data.hostUid == request.auth.uid
+          )) ||
+          // Unauthenticated guest user:
+          (request.auth == null && (
+            // Joining (create)
+            (resource == null && request.resource.data.isHost == false && request.resource.data.isBot == false) ||
+            // Updating their own fields (ready, connection, score)
+            (resource != null && resource.data.isHost == false && resource.data.isBot == false) ||
+            // Leaving (delete)
+            (request.resource == null)
+          ))
         );
       }
 
       match /chat/{msgId} {
         allow read: if true;
-        allow create: if request.auth != null && (
-          exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))
+        allow create: if (
+          (request.auth != null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))) ||
+          (request.auth == null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.resource.data.uid)))
         );
         allow update, delete: if false;
       }
 
       match /reactions/{reactionId} {
         allow read: if true;
-        allow create: if request.auth != null && (
-          exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))
+        allow create: if (
+          (request.auth != null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))) ||
+          (request.auth == null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.resource.data.uid)))
         );
         allow update, delete: if false;
       }
 
       match /gameState/{doc} {
         allow read: if true;
-        allow write: if request.auth != null && (
-          exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))
+        allow write: if (
+          (request.auth != null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))) ||
+          (request.auth == null)
         );
       }
     }
