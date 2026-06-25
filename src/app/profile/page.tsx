@@ -44,8 +44,8 @@ export default function ProfilePage() {
     router.push('/');
   };
 
-  const handleStore = () => {
-    router.push('/store');
+  const handleStore = (tab?: string) => {
+    router.push(tab ? `/store?tab=${tab}` : '/store');
   };
 
   const handleCoins = () => {
@@ -150,7 +150,7 @@ export default function ProfilePage() {
                   <span key={p.id} className="packchip packchip-on profile-chip-static">{p.name}<span className="packchip-count">{p.cards}</span></span>
                 ))}
               </div>
-              <button className="linkbtn" onClick={handleStore}>Browse more packs →</button>
+              <button className="linkbtn" onClick={() => handleStore('packs')}>Browse more packs →</button>
             </section>
 
             <section className="profile-card">
@@ -164,7 +164,7 @@ export default function ProfilePage() {
               ) : (
                 <p className="muted profile-empty">No upgrades yet. Bigger rooms and card swaps await.</p>
               )}
-              <button className="linkbtn" onClick={handleStore}>See upgrades →</button>
+              <button className="linkbtn" onClick={() => handleStore('upgrades')}>See upgrades →</button>
             </section>
 
             <section className="profile-card profile-history">
