@@ -2466,3 +2466,89 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
 .reveal-card-wrapper:hover {
   transform: translateY(-2px);
 }
+
+/* ---------- Global Top Banner ---------- */
+.feedback-banner {
+  background: linear-gradient(90deg, #1b1b1b, #2b2b2b);
+  border-bottom: 1.5px solid rgba(255, 201, 60, 0.25);
+  color: var(--fg);
+  padding: 10px 40px;
+  position: relative;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 500;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  z-index: 999;
+  animation: slideDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+}
+
+.feedback-banner-text {
+  font-family: var(--font-bricolage), var(--font-d);
+  line-height: 1.4;
+}
+
+.feedback-banner-link {
+  color: #FFC93C;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 700;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  transition: color 0.15s;
+}
+
+.feedback-banner-link:hover {
+  color: #FF9F1C;
+}
+
+.feedback-banner-close {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--fg);
+  opacity: 0.55;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 6px 10px;
+  transition: opacity 0.15s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.feedback-banner-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .feedback-banner {
+    padding: 8px 36px 8px 12px;
+    font-size: 12px;
+    text-align: left;
+    justify-content: flex-start;
+  }
+}
+

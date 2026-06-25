@@ -1,6 +1,7 @@
 import "./globals.css";
 import { GameProvider } from "@/context/GameContext";
 import { Bricolage_Grotesque, Schibsted_Grotesk } from 'next/font/google';
+import FeedbackBanner from "@/components/FeedbackBanner";
 
 const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <GameProvider>
           <div className="cah-app">
+            <FeedbackBanner />
             {children}
           </div>
         </GameProvider>
