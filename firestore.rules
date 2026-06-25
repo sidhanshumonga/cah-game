@@ -55,7 +55,7 @@ service cloud.firestore {
             // Deletion
             (request.resource == null) ||
             // Creation/Update: must not make themselves host or bots
-            (request.resource.data.isHost == false && !(request.resource.data.isBot == true))
+            (request.resource.data.get('isHost', false) == false && request.resource.data.get('isBot', false) == false)
           ))
         );
       }
