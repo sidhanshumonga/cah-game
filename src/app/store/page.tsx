@@ -209,26 +209,7 @@ function PackPreviewModal({ pack, onClose }: PackPreviewModalProps) {
   return (
     <React.Fragment>
       <div className="scrim scrim-open" style={{ zIndex: 110 }} onClick={onClose}></div>
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 111,
-        background: 'var(--dark)',
-        color: 'var(--fg)',
-        borderRadius: '24px',
-        padding: '30px 32px',
-        width: '640px',
-        maxWidth: '92vw',
-        maxHeight: '85vh',
-        boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
-        border: '1px solid rgba(255,255,255,0.15)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-        overflowY: 'auto'
-      }}>
+      <div className="preview-modal">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
           <div>
             <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '22px', fontWeight: 800, margin: 0 }}>{pack.name}</h3>
@@ -237,7 +218,7 @@ function PackPreviewModal({ pack, onClose }: PackPreviewModalProps) {
           <button className="iconbtn" onClick={onClose} aria-label="Close" style={{ fontSize: '18px' }}>✕</button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="preview-modal-grid">
           <div>
             <h4 style={{ fontFamily: 'var(--font-d)', fontSize: '15px', fontWeight: 700, margin: '0 0 12px', opacity: 0.9 }}>Prompts (Black Cards)</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
