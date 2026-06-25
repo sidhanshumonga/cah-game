@@ -487,7 +487,7 @@ export default function LobbyPage() {
                     {pname}{isYou ? " (you)" : ""}
                   </span>
                   <span className={"ptile-status" + (isDisconnected ? " muted" : isReady ? " ptile-ready" : "")}>
-                    {isDisconnected ? "Reconnecting…" : p.isBot ? "Ready" : isReady ? "Ready" : "Joining…"}
+                    {isDisconnected ? "Reconnecting…" : p.isBot ? "Ready" : isReady ? "Ready" : "Joined"}
                   </span>
                   {isRealHost && !isYou && (
                     <button className="ptile-kick" onClick={() => kick(pid)} title="Remove player">✕</button>
