@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameContext, maxPlayersFor, ownsPack, sortPacks, isUserIndian } from '@/context/GameContext';
 import { Logo, Coin, LockIcon, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
+import { Bot } from 'lucide-react';
 
 const MAX_PACKS = 8;
 
@@ -68,6 +69,18 @@ export default function CreateRoomPage() {
   const [packQuery, setPackQuery] = useState("");
   const [lockedHint, setLockedHint] = useState<any>(null);
   const [familyNotice, setFamilyNotice] = useState<string | null>(null);
+
+  // Bots state
+  const hasBotOverlord = !!(account && account.upgrades.includes("botOverlord"));
+  const [botsCount, setBotsCount] = useState(0);
+
+  // Keep botsCount in check when maxPlayers changes
+  useEffect(() => {
+    const limit = hasBotOverlord ? maxPlayers - 1 : Math.min(2, maxPlayers - 1);
+    if (botsCount > limit) {
+      setBotsCount(limit);
+    }
+  }, [maxPlayers, hasBotOverlord, botsCount]);
 
   const [showBuyConfirmModal, setShowBuyConfirmModal] = useState(false);
   const [buyConfirmPack, setBuyConfirmPack] = useState<any | null>(null);
@@ -152,7 +165,8 @@ export default function CreateRoomPage() {
       timer,
       packs,
       family,
-      custom: custom && hasCustom
+      custom: custom && hasCustom,
+      botsCount
     };
     setSettings(newSettings);
     setMode("host");
@@ -233,6 +247,19 @@ export default function CreateRoomPage() {
               {allowed < 20 ? (
                 <span className="upsell">
                   <LockIcon size={11} /> Rooms cap at {allowed} players — <button className="linkbtn" onClick={handleStore}>upgrade in the Marketplace</button>
+                </span>
+              ) : null}
+            </div>
+            <div className="frow">
+              <label className="flabel">Bots <span className="flabel-val">{botsCount}</span></label>
+              <input
+                className="range"
+                type="range" min="0" max={hasBotOverlord ? maxPlayers - 1 : Math.min(2, maxPlayers - 1)} step="1" value={botsCount}
+                onChange={(e) => setBotsCount(+e.target.value)}
+              />
+              {!hasBotOverlord ? (
+                <span className="upsell">
+                  <LockIcon size={11} /> Limit 2 bots — <button className="linkbtn" onClick={handleStore}>Unlock up to 9 bots (799 coins)</button>
                 </span>
               ) : null}
             </div>

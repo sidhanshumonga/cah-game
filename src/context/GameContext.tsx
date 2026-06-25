@@ -56,6 +56,7 @@ export interface GameSettings {
   packs: string[];
   family: boolean;
   custom: boolean;
+  botsCount: number;
 }
 
 export interface EndData {
@@ -346,7 +347,7 @@ const GameContext = createContext<GameContextType | null>(null);
 
 const DEFAULT_SETTINGS: GameSettings = {
   name: "Alex", maxPlayers: 5, scoreLimit: 3, timer: 45,
-  packs: ["classic"], family: false, custom: false
+  packs: ["classic"], family: false, custom: false, botsCount: 0
 };
 
 export function GameProvider({ children }: { children: React.ReactNode }) {

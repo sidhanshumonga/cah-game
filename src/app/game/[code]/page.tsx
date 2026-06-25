@@ -22,6 +22,7 @@ import {
 import { GAME_DATA } from '@/data/game-data';
 import { buildSeededDeck, getPromptForRound, seededShuffle } from '@/utils/deck';
 import { isFirebaseEnabled } from '@/firebase/config';
+import { Bot } from 'lucide-react';
 
 function shuffleArr<T>(a: T[]): T[] {
   const x = [...a];
@@ -483,12 +484,87 @@ function MultiplayerGame({ code }: { code: string }) {
     playersRef.current = players;
   }, [players]);
 
+  // Load full deck answers for bot selections
+  const deckAnswers = useMemo(() => {
+    if (!packs || packs.length === 0) return [];
+    const deck = buildSeededDeck(settings.packs, packs, settings.family, code);
+    return deck.answers;
+  }, [settings.packs, packs, settings.family, code]);
+
   const judge = players.find(p => p.id === judgeUid) || { id: '', name: '', color: '', score: 0 };
   const you = players.find(p => p.isYou) || { id: '', name: '', color: '', score: 0 };
   const winner = players.find(p => p.id === gameState?.winnerUid);
   const winnerSub = subs.find((s: any) => s.uid === gameState?.winnerUid);
   const submittedUids = subs.map((s: any) => s.uid);
   const mid = (hand.length - 1) / 2;
+
+  // Host-coordinated automated bot turns
+  useEffect(() => {
+    if (!isHost || !gameState || gameState.phase === 'reveal') return;
+
+    // 1. Pick Phase: Bots submit cards automatically
+    if (gameState.phase === 'pick') {
+      const activeBots = players.filter(p => p.isBot && p.id !== judge.id);
+      if (activeBots.length === 0) return;
+
+      const submittedUids = (gameState.submissions || []).map((s: any) => s.uid);
+      const pendingBots = activeBots.filter(b => !submittedUids.includes(b.id));
+
+      if (pendingBots.length === 0) return;
+
+      const timers: NodeJS.Timeout[] = [];
+      
+      pendingBots.forEach((bot) => {
+        const delay = 3000 + Math.random() * 4000; // 3-7s delay
+        const t = setTimeout(async () => {
+          const { submitCard } = await import('@/firebase/firestore');
+          if (deckAnswers.length === 0) return;
+          
+          const currentSubsText = (gameState.submissions || []).map((s: any) => s.text);
+          let randomCard = deckAnswers[Math.floor(Math.random() * deckAnswers.length)];
+          let attempts = 0;
+          while (currentSubsText.includes(randomCard) && attempts < 50) {
+            randomCard = deckAnswers[Math.floor(Math.random() * deckAnswers.length)];
+            attempts++;
+          }
+          
+          await submitCard(code, bot.id, bot.name, randomCard);
+        }, delay);
+        
+        timers.push(t);
+      });
+
+      return () => {
+        timers.forEach(clearTimeout);
+      };
+    }
+
+    // 2. Judging Phase: If judge is a bot, pick a winner automatically
+    if (gameState.phase === 'judging') {
+      const judgeIsBot = judge.isBot;
+      if (!judgeIsBot) return;
+
+      const submissions = gameState.submissions || [];
+      if (submissions.length === 0) return;
+
+      const delay = 6000 + Math.random() * 4000; // 6-10s delay
+      const t = setTimeout(async () => {
+        const { updateGameState } = await import('@/firebase/firestore');
+        
+        const winnerSub = submissions[Math.floor(Math.random() * submissions.length)];
+        const newScores = { ...(gameState?.scores || {}) };
+        newScores[winnerSub.uid] = (newScores[winnerSub.uid] || 0) + 1;
+
+        await updateGameState(code, {
+          phase: 'reveal',
+          winnerUid: winnerSub.uid,
+          scores: newScores,
+        });
+      }, delay);
+
+      return () => clearTimeout(t);
+    }
+  }, [isHost, gameState?.phase, gameState?.submissions, gameState?.scores, players, judge, deckAnswers, code]);
 
   // ── Connection state tracking (multiplayer game) ─────────────────────────
   useEffect(() => {

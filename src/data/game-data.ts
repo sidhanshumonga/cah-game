@@ -21,7 +21,10 @@ export const GAME_DATA = {
     { id: "mp10", name: "Bigger Party", desc: "Host rooms with up to 10 players", price: 300 },
     { id: "mp20", name: "House Party", desc: "Host rooms with up to 20 players", price: 600 },
     { id: "swapPlus", name: "Swap Master", desc: "Swap up to 5 cards, and earn swaps every 2 rounds", price: 250 },
-    { id: "customCards", name: "Custom Cards Studio", desc: "Write your own prompts and answers for any room", price: 200 }
+    { id: "customCards", name: "Custom Cards Studio", desc: "Write your own prompts and answers for any room", price: 200 },
+    { id: "botOverlord", name: "Bot Overlord", desc: "Unlock unlimited bot slots to fill up your room with bots", price: 799 },
+    { id: "smartBots", name: "Smart AI Bots", desc: "Gemini-powered bots that play contextually and leave funny comments in chat", price: 500 },
+    { id: "botPersonalities", name: "Personality Packs", desc: "Unlock custom bot personas like Yoda, Gordon Ramsay, and Shakespeare", price: 199 }
   ],
   creditBundles: [
     { coins: 500, tag: "$4.99", productId: "prod_UiU1bLVVTs3WEp" },

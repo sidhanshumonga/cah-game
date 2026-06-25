@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { GAME_DATA } from '../data/game-data';
 import { Player } from '@/context/GameContext';
+import { Bot } from 'lucide-react';
 
 export const CONFETTI_COLORS = ["#FF5C39", "#FFC93C", "#7C5CFF", "#2BC4BE", "#FF4D8D", "#5CA9FF"];
 
@@ -91,7 +92,7 @@ export function CrownIcon() {
 }
 
 interface AvatarProps {
-  player: { name: string; color: string };
+  player: { name: string; color: string; isBot?: boolean };
   size?: number;
   judge?: boolean;
   done?: boolean;
@@ -100,13 +101,20 @@ interface AvatarProps {
 
 export function Avatar({ player, size, judge, done, dim }: AvatarProps) {
   const s = size || 40;
+  const isBot = player.isBot;
   return (
     <span
       className={"avatar" + (dim ? " avatar-dim" : "")}
       style={{ width: s, height: s, background: player.color, fontSize: s * 0.42 }}
       title={player.name}
     >
-      {player.name ? player.name[0] : '?'}
+      {isBot ? (
+        <Bot size={s * 0.55} style={{ opacity: 0.9 }} />
+      ) : player.name ? (
+        player.name[0]
+      ) : (
+        '?'
+      )}
       {judge ? (
         <span className="avatar-badge avatar-crown"><CrownIcon /></span>
       ) : null}
@@ -446,7 +454,8 @@ export function SideScores({ players, judgeId, limit }: { players: Player[]; jud
         return (
           <div key={p.id} className={"ss-row" + (p.isYou ? " ss-you" : "")} style={{ opacity: dim ? 0.55 : 1 }}>
             <Avatar player={p} size={28} judge={p.id === judgeId} dim={dim} />
-            <span className="ss-name" title={p.name + statusText}>
+            <span className="ss-name" title={p.name + statusText} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              {p.isBot && <Bot size={11} style={{ color: '#a855f7', flexShrink: 0 }} />}
               {p.name}{p.isYou ? " (you)" : ""}{statusText}
             </span>
             <span key={p.score} className={"ss-pts" + (p.score === top && top > 0 ? " ss-lead" : "")}>{p.score}</span>
@@ -487,7 +496,8 @@ export function ScorePanel({ open, onClose, players, limit }: ScorePanelProps) {
               <li key={p.id} className="scorerow" style={{ opacity: dim ? 0.55 : 1 }}>
                 <span className="scorerow-rank">{i + 1}</span>
                 <Avatar player={p} size={34} dim={dim} />
-                <span className="scorerow-name" title={p.name + statusText}>
+                <span className="scorerow-name" title={p.name + statusText} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {p.isBot && <Bot size={13} style={{ color: '#a855f7', flexShrink: 0 }} />}
                   {p.name}{p.isYou ? " (you)" : ""}{statusText}
                 </span>
                 <span className="scorerow-bar">

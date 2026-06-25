@@ -7,6 +7,7 @@ import { Logo, Avatar, Btn, Coin, LockIcon } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 import { isFirebaseEnabled } from '@/firebase/config';
 import { buildSeededDeck, getPromptForRound } from '@/utils/deck';
+import { Bot } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -79,6 +80,53 @@ export default function LobbyPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  const myUid = account?.uid || account?.email || "you";
+  const isRealHost = roomPlayers.find(p => p.uid === myUid)?.isHost ?? false;
+
+  // Synchronize Firestore bot documents to match settings.botsCount
+  useEffect(() => {
+    if (!isRealHost || !settings) return;
+    
+    const currentBots = roomPlayers.filter(p => (p as any).isBot);
+    const targetBotsCount = settings.botsCount || 0;
+    
+    if (currentBots.length === targetBotsCount) return;
+    
+    async function syncBots() {
+      const { addBotPlayer, removeBotPlayer } = await import('@/firebase/firestore');
+      
+      if (currentBots.length < targetBotsCount) {
+        const botNames = [
+          "Sarcastic Steve", "Chatty Cathy", "AI-Braham Lincoln", "The Algorithm", 
+          "Alan Turing", "Captain Obvious", "ChatterBot", "Robby", "ByteMe", 
+          "Silicon Sally", "Data Dave", "Cyber Sam"
+        ];
+        const colors = ["#FF5C39", "#2BC4BE", "#FFC93C", "#8F7BFF", "#FF3CAC", "#FF763C", "#2BC47B", "#EC4899", "#A855F7", "#10B981"];
+        
+        const needed = targetBotsCount - currentBots.length;
+        for (let i = 0; i < needed; i++) {
+          const botId = `bot_${Math.random().toString(36).substring(2, 11)}`;
+          const randomName = `${botNames[Math.floor(Math.random() * botNames.length)]}`;
+          const randomColor = colors[Math.floor(Math.random() * colors.length)];
+          
+          await addBotPlayer(code, {
+            uid: botId,
+            name: randomName,
+            color: randomColor,
+          });
+        }
+      } else if (currentBots.length > targetBotsCount) {
+        const extraCount = currentBots.length - targetBotsCount;
+        const extraBots = currentBots.slice(0, extraCount);
+        for (const bot of extraBots) {
+          await removeBotPlayer(code, bot.uid);
+        }
+      }
+    }
+    
+    syncBots().catch(e => console.error("Error syncing bots:", e));
+  }, [isRealHost, settings?.botsCount, roomPlayers, code]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth > 880) {
@@ -279,8 +327,6 @@ export default function LobbyPage() {
   };
 
   // ── Derived state ─────────────────────────────────────────────────────────
-  const myUid = account?.uid || account?.email || "you";
-  const isRealHost = roomPlayers.find(p => p.uid === myUid)?.isHost ?? false;
 
   const displayPlayers = roomPlayers;
   const displayMsgs = msgs;
@@ -430,10 +476,13 @@ export default function LobbyPage() {
               const isReady = p.ready;
               return (
                 <div key={pid} className="ptile" style={isDisconnected ? { opacity: 0.5 } : undefined}>
-                  <Avatar player={{ name: pname, color: p.color }} size={52} judge={isPlayerHost} done={!isDisconnected && !!isReady} />
-                  <span className="ptile-name">{pname}{isYou ? " (you)" : ""}</span>
+                  <Avatar player={{ name: pname, color: p.color, isBot: !!p.isBot }} size={52} judge={isPlayerHost} done={!isDisconnected && !!isReady} />
+                  <span className="ptile-name" style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                    {p.isBot && <Bot size={13} style={{ color: '#a855f7' }} />}
+                    {pname}{isYou ? " (you)" : ""}
+                  </span>
                   <span className={"ptile-status" + (isDisconnected ? " muted" : isReady ? " ptile-ready" : "")}>
-                    {isDisconnected ? "Reconnecting…" : isReady ? "Ready" : "Joining…"}
+                    {isDisconnected ? "Reconnecting…" : p.isBot ? "Ready" : isReady ? "Ready" : "Joining…"}
                   </span>
                   {isRealHost && !isYou && (
                     <button className="ptile-kick" onClick={() => kick(pid)} title="Remove player">✕</button>
@@ -616,6 +665,10 @@ function EditSettingsModal({ open, settings, onClose, onSave, packs: allPacks, a
   const [buyConfirmPack, setBuyConfirmPack] = useState<any | null>(null);
   const [buyLoading, setBuyLoading] = useState(false);
 
+  // Bots state in Modal
+  const hasBotOverlord = !!(account && account.upgrades.includes("botOverlord"));
+  const [botsCount, setBotsCount] = useState(settings.botsCount || 0);
+
   // Sync state if settings change in real-time
   useEffect(() => {
     if (open) {
@@ -624,8 +677,17 @@ function EditSettingsModal({ open, settings, onClose, onSave, packs: allPacks, a
       setTimer(settings.timer);
       setPacks(settings.packs);
       setFamily(settings.family);
+      setBotsCount(settings.botsCount || 0);
     }
   }, [open, settings]);
+
+  // Keep botsCount in check when maxPlayers changes in Modal
+  useEffect(() => {
+    const limit = hasBotOverlord ? maxPlayers - 1 : Math.min(2, maxPlayers - 1);
+    if (botsCount > limit) {
+      setBotsCount(limit);
+    }
+  }, [maxPlayers, hasBotOverlord, botsCount]);
 
   // Adjust packs if family-friendly mode is toggled
   useEffect(() => {
@@ -692,6 +754,7 @@ function EditSettingsModal({ open, settings, onClose, onSave, packs: allPacks, a
         timer,
         packs,
         family,
+        botsCount
       });
     } catch (e) {
       console.error(e);
@@ -720,6 +783,19 @@ function EditSettingsModal({ open, settings, onClose, onSave, packs: allPacks, a
                 type="range" min="3" max={allowed} step="1" value={maxPlayers}
                 onChange={(e) => setMaxPlayers(+e.target.value)}
               />
+            </div>
+            <div className="frow">
+              <label className="flabel">Bots <span className="flabel-val">{botsCount}</span></label>
+              <input
+                className="range"
+                type="range" min="0" max={hasBotOverlord ? maxPlayers - 1 : Math.min(2, maxPlayers - 1)} step="1" value={botsCount}
+                onChange={(e) => setBotsCount(+e.target.value)}
+              />
+              {!hasBotOverlord ? (
+                <span className="upsell">
+                  <LockIcon size={11} /> Limit 2 bots — <button className="linkbtn" onClick={() => { onClose(); router.push('/store'); }}>Unlock up to 9 bots (799 coins)</button>
+                </span>
+              ) : null}
             </div>
             <div className="frow">
               <label className="flabel">Points to win</label>

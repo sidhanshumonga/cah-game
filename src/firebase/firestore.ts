@@ -280,6 +280,26 @@ export async function kickPlayer(code: string, uid: string): Promise<void> {
   await deleteDoc(doc(db, 'rooms', code, 'players', uid));
 }
 
+export async function addBotPlayer(code: string, bot: {
+  uid: string; name: string; color: string;
+}): Promise<void> {
+  if (!db) return;
+  await setDoc(doc(db, 'rooms', code, 'players', bot.uid), {
+    ...bot,
+    score: 0,
+    ready: true,
+    isHost: false,
+    isBot: true,
+    isConnected: true,
+    joinedAt: serverTimestamp(),
+  });
+}
+
+export async function removeBotPlayer(code: string, botUid: string): Promise<void> {
+  if (!db) return;
+  await deleteDoc(doc(db, 'rooms', code, 'players', botUid));
+}
+
 export function subscribeRoomPlayers(
   code: string,
   callback: (players: any[]) => void

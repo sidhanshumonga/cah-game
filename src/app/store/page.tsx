@@ -156,7 +156,7 @@ export default function StorePage() {
                   <div key={u.id} className={"store-card" + (owned ? " store-owned" : "")}>
                     <span className="store-card-name">{u.name}</span>
                     <span className="store-card-sub">{u.desc}</span>
-                    {u.id === 'customCards' ? (
+                    {u.id === 'customCards' || u.id === 'smartBots' || u.id === 'botPersonalities' ? (
                       <span className="store-tag" style={{ opacity: 0.6 }}>Coming soon</span>
                     ) : owned ? (
                       <span className="store-tag store-tag-owned">✓ Owned</span>
