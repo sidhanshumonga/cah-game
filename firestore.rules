@@ -46,19 +46,16 @@ service cloud.firestore {
       match /players/{uid} {
         allow read: if true;
         allow write: if (
-          // Authenticated user: can write their own doc, or host can write any player doc
-          (request.auth != null && (
-            request.auth.uid == uid ||
-            get(/databases/$(database)/documents/rooms/$(code)).data.hostUid == request.auth.uid
-          )) ||
-          // Unauthenticated guest user:
-          (request.auth == null && (
-            // Joining (create)
-            (resource == null && request.resource.data.isHost == false && !(request.resource.data.isBot == true)) ||
-            // Updating their own fields (ready, connection, score)
-            (resource != null && resource.data.isHost == false && !(resource.data.isBot == true)) ||
-            // Leaving (delete)
-            (request.resource == null)
+          // Host can write/manage any player doc in their room
+          (request.auth != null && get(/databases/$(database)/documents/rooms/$(code)).data.hostUid == request.auth.uid) ||
+          // Authenticated user can write their own player doc
+          (request.auth != null && request.auth.uid == uid) ||
+          // Guest user (identified by UID pattern ending in @guest.example.com) can write their own doc
+          (uid.matches('.*@guest[.]example[.]com') && (
+            // Deletion
+            (request.resource == null) ||
+            // Creation/Update: must not make themselves host or bots
+            (request.resource.data.isHost == false && !(request.resource.data.isBot == true))
           ))
         );
       }
@@ -66,8 +63,7 @@ service cloud.firestore {
       match /chat/{msgId} {
         allow read: if true;
         allow create: if (
-          (request.auth != null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))) ||
-          (request.auth == null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.resource.data.uid)))
+          exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.resource.data.uid))
         );
         allow update, delete: if false;
       }
@@ -75,18 +71,14 @@ service cloud.firestore {
       match /reactions/{reactionId} {
         allow read: if true;
         allow create: if (
-          (request.auth != null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))) ||
-          (request.auth == null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.resource.data.uid)))
+          exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.resource.data.uid))
         );
         allow update, delete: if false;
       }
 
       match /gameState/{doc} {
         allow read: if true;
-        allow write: if (
-          (request.auth != null && exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid))) ||
-          (request.auth == null)
-        );
+        allow write: if true;
       }
     }
   }
