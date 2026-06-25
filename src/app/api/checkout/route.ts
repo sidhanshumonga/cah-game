@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getAuth } from 'firebase-admin/auth';
-import '@/firebase/admin';
+import { adminAuth } from '@/firebase/admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-01-27.acacia' as any,
@@ -53,7 +52,7 @@ export async function POST(req: Request) {
       }
       const idToken = authHeader.substring(7);
       try {
-        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const decodedToken = await adminAuth.verifyIdToken(idToken);
         targetUid = decodedToken.uid;
         targetEmail = decodedToken.email || '';
       } catch (authErr: any) {

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { adminDb } from '@/firebase/admin';
+import { adminDb, adminAuth } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { GAME_DATA } from '@/data/game-data';
 
@@ -14,7 +13,7 @@ export async function POST(req: Request) {
     const idToken = authHeader.substring(7);
     let uid: string;
     try {
-      const decodedToken = await getAuth().verifyIdToken(idToken);
+      const decodedToken = await adminAuth.verifyIdToken(idToken);
       uid = decodedToken.uid;
     } catch (authErr: any) {
       console.error('[purchase-api] Token verification failed:', authErr.message);
@@ -56,6 +55,8 @@ export async function POST(req: Request) {
     const userRef = adminDb.collection('users').doc(uid);
     let success = false;
     let errorMessage = '';
+    let userEmail = 'unknown';
+    let finalCredits = 0;
 
     await adminDb.runTransaction(async (transaction) => {
       const userSnap = await transaction.get(userRef);
@@ -65,6 +66,7 @@ export async function POST(req: Request) {
       }
 
       const userData = userSnap.data() || {};
+      userEmail = userData.email || userData.name || 'unknown';
       const currentCredits = userData.credits || 0;
       const ownedPacks = userData.packs || [];
       const ownedUpgrades = userData.upgrades || [];
@@ -87,6 +89,7 @@ export async function POST(req: Request) {
 
       // Deduct credits and update inventory
       const newCredits = currentCredits - price;
+      finalCredits = newCredits;
       const newPacks = itemType === 'pack' ? [...ownedPacks, itemId] : ownedPacks;
       const newUpgrades = itemType === 'upgrade' ? [...ownedUpgrades, itemId] : ownedUpgrades;
       
@@ -114,14 +117,10 @@ export async function POST(req: Request) {
     // 3. Log purchase globally to /purchases for dashboard visibility
     const purchaseId = `${uid}-${Date.now()}`;
     const purchaseRef = adminDb.collection('purchases').doc(purchaseId);
-    
-    // Get user email safely for logging
-    const userSnap = await userRef.get();
-    const userData = userSnap.data() || {};
 
     await purchaseRef.set({
       userId: uid,
-      userEmail: userData.email || userData.name || 'unknown',
+      userEmail: userEmail,
       itemType: itemType,
       itemId: itemId,
       itemName: itemName,
@@ -133,7 +132,7 @@ export async function POST(req: Request) {
     });
 
     console.log(`[purchase-api] SUCCESS — uid: ${uid} bought ${itemType}:${itemId} for ${price} coins.`);
-    return NextResponse.json({ success: true, newBalance: userData.credits });
+    return NextResponse.json({ success: true, newBalance: finalCredits });
 
   } catch (e: any) {
     console.error('[purchase-api] Purchase transaction failed:', e);
