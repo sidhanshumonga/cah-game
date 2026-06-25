@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameContext, ownsPack, sortPacks, isUserIndian, Pack } from '@/context/GameContext';
 import { Logo, Coin, LockIcon, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
-import { Eye } from 'lucide-react';
+import { Eye, X } from 'lucide-react';
 
 const STORE_SECTIONS = [
   { id: "packs", label: "Card packs" },
@@ -219,7 +219,9 @@ function PackPreviewModal({ pack, onClose }: PackPreviewModalProps) {
             <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '22px', fontWeight: 800, margin: 0 }}>{pack.name}</h3>
             <span style={{ fontSize: '13px', opacity: 0.6 }}>Pack Preview ({pack.cards} cards total)</span>
           </div>
-          <button className="iconbtn" onClick={onClose} aria-label="Close" style={{ fontSize: '18px' }}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
         </div>
 
         <div className="preview-modal-grid">

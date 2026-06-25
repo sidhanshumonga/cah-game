@@ -22,7 +22,7 @@ import {
 import { GAME_DATA } from '@/data/game-data';
 import { buildSeededDeck, getPromptForRound, seededShuffle } from '@/utils/deck';
 import { isFirebaseEnabled } from '@/firebase/config';
-import { Bot } from 'lucide-react';
+import { Bot, X } from 'lucide-react';
 
 function shuffleArr<T>(a: T[]): T[] {
   const x = [...a];
@@ -999,7 +999,9 @@ function MultiplayerGame({ code }: { code: string }) {
             <aside className="lobby-chat game-chat-drawer">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <h3 className="lobby-sec-title" style={{ margin: 0 }}>Chat</h3>
-                <button className="iconbtn" onClick={() => setChatOpen(false)} aria-label="Close chat" style={{ padding: '4px 8px', fontSize: '16px' }}>✕</button>
+                <button className="iconbtn" onClick={() => setChatOpen(false)} aria-label="Close chat">
+                  <X size={18} />
+                </button>
               </div>
               <div className="chat-msgs">
                 {chatMessages.map((m) => {

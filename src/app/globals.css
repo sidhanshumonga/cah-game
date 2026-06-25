@@ -37,7 +37,8 @@ input { font-family: inherit; }
 .btn.accent { background: var(--accent); color: var(--dark); }
 .btn-big { font-size: 18px; padding: 15px 32px; }
 
-.iconbtn { background: transparent; border: 0; color: inherit; opacity: 0.55; font-size: 16px; padding: 6px 9px; border-radius: 8px; }
+.iconbtn { background: transparent; border: 0; color: inherit; opacity: 0.55; font-size: 16px; padding: 0; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; transition: opacity 0.15s, background-color 0.15s; }
 .iconbtn:hover { opacity: 1; background: rgba(125,125,125,0.12); }
 
 .chip { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600;
@@ -396,7 +397,7 @@ button.flipwrap:hover { transform: translateY(-8px); }
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 70; }
 .scrim-open { opacity: 1; pointer-events: auto; }
 .scorepanel { position: fixed; top: 0; right: 0; height: 100%; width: 340px; max-width: 90vw; background: var(--paper); color: var(--paper-fg);
-  z-index: 71; padding: 22px; transform: translateX(105%); transition: transform calc(var(--m) * 0.35s) cubic-bezier(.2,.8,.3,1);
+  z-index: 71; padding: calc(22px + env(safe-area-inset-top, 0px)) 22px 22px; transform: translateX(105%); transition: transform calc(var(--m) * 0.35s) cubic-bezier(.2,.8,.3,1);
   box-shadow: -16px 0 40px rgba(0,0,0,0.2); }
 .scorepanel-open { transform: translateX(0); }
 .scorepanel-head { display: flex; align-items: center; justify-content: space-between; }

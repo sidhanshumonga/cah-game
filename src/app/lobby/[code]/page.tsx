@@ -7,7 +7,7 @@ import { Logo, Avatar, Btn, Coin, LockIcon } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 import { isFirebaseEnabled } from '@/firebase/config';
 import { buildSeededDeck, getPromptForRound } from '@/utils/deck';
-import { Bot, Settings } from 'lucide-react';
+import { Bot, Settings, X } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -559,7 +559,9 @@ export default function LobbyPage() {
             <aside className="lobby-chat lobby-chat-drawer">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <h3 className="lobby-sec-title" style={{ margin: 0 }}>Chat</h3>
-                <button className="iconbtn" onClick={() => setChatOpen(false)} aria-label="Close chat" style={{ padding: '4px 8px', fontSize: '16px' }}>✕</button>
+                <button className="iconbtn" onClick={() => setChatOpen(false)} aria-label="Close chat">
+                  <X size={18} />
+                </button>
               </div>
               <div className="chat-msgs">
                 {displayMsgs.map((m) => {
@@ -774,7 +776,9 @@ function EditSettingsModal({ open, settings, onClose, onSave, packs: allPacks, a
       <div className="settings-modal">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '22px', fontWeight: 800, margin: 0 }}>Edit Room Settings</h3>
-          <button className="iconbtn" onClick={onClose} aria-label="Close" style={{ fontSize: '18px' }}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
         </div>
 
         <div className="create-grid" style={{ margin: 0, gap: '24px' }}>

@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { GAME_DATA } from '../data/game-data';
 import { Player } from '@/context/GameContext';
-import { Bot } from 'lucide-react';
+import { Bot, X } from 'lucide-react';
 
 export const CONFETTI_COLORS = ["#FF5C39", "#FFC93C", "#7C5CFF", "#2BC4BE", "#FF4D8D", "#5CA9FF"];
 
@@ -483,7 +483,9 @@ export function ScorePanel({ open, onClose, players, limit }: ScorePanelProps) {
       <aside className={"scorepanel" + (open ? " scorepanel-open" : "")}>
         <div className="scorepanel-head">
           <h3>Leaderboard</h3>
-          <button className="iconbtn" onClick={onClose} aria-label="Close">✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
         </div>
         <p className="scorepanel-sub">First to {limit} points wins</p>
         <ul className="scorelist">
