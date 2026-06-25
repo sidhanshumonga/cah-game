@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameContext } from '@/context/GameContext';
 import { Btn } from '@/components/components';
+import { Megaphone, Bot } from 'lucide-react';
 
 export default function FeedbackBanner() {
   const [dismissed, setDismissed] = useState(true);
@@ -63,8 +64,8 @@ export default function FeedbackBanner() {
       {!dismissed && (
         <div className="feedback-banner">
           <span className="feedback-banner-text">
-            📣 We hear your feedback! Drop your <button className="feedback-banner-link" onClick={() => setOpen(true)}>feedback or suggestions</button> here. 
-            <strong> Next up: Bots coming soon! 🤖</strong>
+            <Megaphone className="inline-icon" size={14} /> We hear your feedback! Drop your <button className="feedback-banner-link" onClick={() => setOpen(true)}>feedback or suggestions</button> here. 
+            <strong> Next up: Bots coming soon! <Bot className="inline-icon" size={14} /></strong>
           </span>
           <button type="button" className="feedback-banner-close" onClick={handleDismiss} aria-label="Close banner">✕</button>
         </div>

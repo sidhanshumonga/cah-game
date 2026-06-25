@@ -2491,6 +2491,13 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   line-height: 1.4;
 }
 
+.feedback-banner .inline-icon {
+  display: inline-block;
+  vertical-align: -2.5px;
+  margin: 0 2px;
+  color: #FFC93C;
+}
+
 .feedback-banner-link {
   color: #FFC93C;
   text-decoration: underline;
