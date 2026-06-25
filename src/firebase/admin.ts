@@ -1,6 +1,6 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 let serviceAccount: any = null;
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -37,5 +37,25 @@ if (getApps().length === 0) {
 }
 
 export const adminDb = getFirestore();
-export const adminAuth = getAuth();
 export { adminDb as db };
+
+const JWKS = createRemoteJWKSet(
+  new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
+);
+
+export async function verifyIdToken(idToken: string) {
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  if (!projectId) {
+    throw new Error('NEXT_PUBLIC_FIREBASE_PROJECT_ID is not configured');
+  }
+  const { payload } = await jwtVerify(idToken, JWKS, {
+    issuer: `https://securetoken.google.com/${projectId}`,
+    audience: projectId,
+  });
+  return {
+    uid: payload.sub as string,
+    email: payload.email as string,
+    ...payload,
+  };
+}
+

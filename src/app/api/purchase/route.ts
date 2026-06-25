@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb, adminAuth } from '@/firebase/admin';
+import { adminDb, verifyIdToken } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { GAME_DATA } from '@/data/game-data';
 
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const idToken = authHeader.substring(7);
     let uid: string;
     try {
-      const decodedToken = await adminAuth.verifyIdToken(idToken);
+      const decodedToken = await verifyIdToken(idToken);
       uid = decodedToken.uid;
     } catch (authErr: any) {
       console.error('[purchase-api] Token verification failed:', authErr.message);
