@@ -7,7 +7,7 @@ import { Logo, Avatar, Btn, Coin, LockIcon } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 import { isFirebaseEnabled } from '@/firebase/config';
 import { buildSeededDeck, getPromptForRound } from '@/utils/deck';
-import { Bot } from 'lucide-react';
+import { Bot, Settings } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -518,10 +518,10 @@ export default function LobbyPage() {
               <button 
                 type="button"
                 className="chip" 
-                style={{ background: 'var(--accent)', color: 'var(--dark)', fontWeight: 'bold', cursor: 'pointer' }}
+                style={{ background: 'var(--accent)', color: 'var(--dark)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                 onClick={() => setSettingsOpen(true)}
               >
-                ⚙️ Edit Settings
+                <Settings size={13} /> Edit Settings
               </button>
             )}
           </div>
@@ -793,7 +793,7 @@ function EditSettingsModal({ open, settings, onClose, onSave, packs: allPacks, a
               />
               {!hasBotOverlord ? (
                 <span className="upsell">
-                  <LockIcon size={11} /> Limit 2 bots — <button className="linkbtn" onClick={() => { onClose(); router.push('/store'); }}>Unlock up to 9 bots (799 coins)</button>
+                  <LockIcon size={11} /> Limit 2 bots — <button className="linkbtn" onClick={() => { onClose(); router.push('/store?tab=upgrades'); }}>Unlock up to 9 bots (799 coins)</button>
                 </span>
               ) : null}
             </div>

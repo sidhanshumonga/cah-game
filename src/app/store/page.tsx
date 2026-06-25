@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameContext, ownsPack, sortPacks, isUserIndian, Pack } from '@/context/GameContext';
 import { Logo, Coin, LockIcon, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
+import { Eye } from 'lucide-react';
 
 const STORE_SECTIONS = [
   { id: "packs", label: "Card packs" },
@@ -47,6 +48,16 @@ export default function StorePage() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab) {
+      setTimeout(() => {
+        goSection(tab);
+      }, 350);
+    }
   }, []);
 
   const handleBack = () => {
@@ -125,7 +136,7 @@ export default function StorePage() {
                       style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.85, padding: '4px 0', alignSelf: 'flex-start', border: 0, background: 'transparent', cursor: 'pointer', outline: 'none' }}
                       onClick={() => setPreviewPack(p)}
                     >
-                      👁️ Preview Cards
+                      <Eye className="inline-icon" size={13} style={{ color: '#FFC93C' }} /> Preview Cards
                     </button>
                     {p.free ? (
                       <span className="store-tag">Included free</span>

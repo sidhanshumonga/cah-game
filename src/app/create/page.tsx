@@ -128,8 +128,9 @@ export default function CreateRoomPage() {
     router.push('/');
   };
 
-  const handleStore = () => {
-    router.push('/store');
+  const handleStore = (tab?: any) => {
+    const tabStr = typeof tab === 'string' ? tab : '';
+    router.push(tabStr ? `/store?tab=${tabStr}` : '/store');
   };
 
   const handleInstantBuy = async () => {
@@ -246,7 +247,7 @@ export default function CreateRoomPage() {
               />
               {allowed < 20 ? (
                 <span className="upsell">
-                  <LockIcon size={11} /> Rooms cap at {allowed} players — <button className="linkbtn" onClick={handleStore}>upgrade in the Marketplace</button>
+                  <LockIcon size={11} /> Rooms cap at {allowed} players — <button className="linkbtn" onClick={() => handleStore('upgrades')}>upgrade in the Marketplace</button>
                 </span>
               ) : null}
             </div>
@@ -259,7 +260,7 @@ export default function CreateRoomPage() {
               />
               {!hasBotOverlord ? (
                 <span className="upsell">
-                  <LockIcon size={11} /> Limit 2 bots — <button className="linkbtn" onClick={handleStore}>Unlock up to 9 bots (799 coins)</button>
+                  <LockIcon size={11} /> Limit 2 bots — <button className="linkbtn" onClick={() => handleStore('upgrades')}>Unlock up to 9 bots (799 coins)</button>
                 </span>
               ) : null}
             </div>
