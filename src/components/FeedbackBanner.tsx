@@ -15,7 +15,7 @@ export default function FeedbackBanner() {
   // Load dismissed state on mount
   useEffect(() => {
     if (isHydrated) {
-      const stored = localStorage.getItem('cah-banner-dismissed-joinfix');
+      const stored = localStorage.getItem('cah-banner-dismissed-joinwarning');
       if (!stored) {
         setDismissed(false);
       }
@@ -23,7 +23,7 @@ export default function FeedbackBanner() {
   }, [isHydrated]);
 
   const handleDismiss = () => {
-    localStorage.setItem('cah-banner-dismissed-joinfix', 'true');
+    localStorage.setItem('cah-banner-dismissed-joinwarning', 'true');
     setDismissed(true);
   };
 
@@ -62,10 +62,9 @@ export default function FeedbackBanner() {
     <React.Fragment>
       {/* 1. Global Dismissible Banner */}
       {!dismissed && (
-        <div className="feedback-banner">
+        <div className="feedback-banner" style={{ background: 'linear-gradient(90deg, #b91c1c 0%, #1e1b4b 100%)' }}>
           <span className="feedback-banner-text">
-            <Megaphone className="inline-icon" size={14} /> <strong>Joining issues are now resolved!</strong> Drop your <button className="feedback-banner-link" onClick={() => setOpen(true)}>feedback or suggestions</button> here. 
-            <strong> Bots are now live! Next up: Smart AI Bots coming soon! <Bot className="inline-icon" size={14} /></strong>
+            <Megaphone className="inline-icon" size={14} /> <strong>We are facing difficulties with joining rooms, fixing it!</strong> Drop your <button className="feedback-banner-link" onClick={() => setOpen(true)}>feedback or suggestions</button> here.
           </span>
           <button type="button" className="feedback-banner-close" onClick={handleDismiss} aria-label="Close banner">✕</button>
         </div>
