@@ -97,8 +97,8 @@ export interface GameContextType {
   packs: Pack[];
   getCardsForPacks: (selectedPackIds: string[], family?: boolean) => { prompts: string[]; answers: string[] };
   spend: (cost: number, label: string, apply: (a: Account) => Account) => void;
-  buyPack: (p: { id: string; name: string; price: number }) => void;
-  buyUpgrade: (u: { id: string; price: number; name: string }) => void;
+  buyPack: (p: { id: string; name: string; price: number }) => void | Promise<void>;
+  buyUpgrade: (u: { id: string; price: number; name: string }) => void | Promise<void>;
   buyCredits: (b: { coins: number; tag: string }) => void;
   handleLogin: (info: { name: string; email: string }) => void;
   updateProfile: (updates: { name: string; color: string }) => Promise<void>;
@@ -589,13 +589,55 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [persistToFirestore]);
 
-  const buyPack = useCallback((p: { id: string; name: string; price: number }) => {
-    spend(p.price, "Pack: " + p.name, (a) => ({ ...a, packs: [...a.packs, p.id] }));
-  }, [spend]);
+  const buyPack = useCallback(async (p: { id: string; name: string; price: number }) => {
+    if (isFirebaseEnabled && auth.currentUser) {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        const res = await fetch('/api/purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ itemId: p.id, itemType: 'pack' })
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Failed to complete purchase');
+        }
+      } catch (err: any) {
+        console.error("Failed to buy pack securely:", err);
+        alert(err.message || "Failed to purchase pack");
+      }
+    } else {
+      spend(p.price, "Pack: " + p.name, (a) => ({ ...a, packs: [...a.packs, p.id] }));
+    }
+  }, [isFirebaseEnabled, spend]);
 
-  const buyUpgrade = useCallback((u: { id: string; price: number; name: string }) => {
-    spend(u.price, "Upgrade: " + u.name, (a) => ({ ...a, upgrades: [...a.upgrades, u.id] }));
-  }, [spend]);
+  const buyUpgrade = useCallback(async (u: { id: string; price: number; name: string }) => {
+    if (isFirebaseEnabled && auth.currentUser) {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        const res = await fetch('/api/purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ itemId: u.id, itemType: 'upgrade' })
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Failed to complete purchase');
+        }
+      } catch (err: any) {
+        console.error("Failed to buy upgrade securely:", err);
+        alert(err.message || "Failed to purchase upgrade");
+      }
+    } else {
+      spend(u.price, "Upgrade: " + u.name, (a) => ({ ...a, upgrades: [...a.upgrades, u.id] }));
+    }
+  }, [isFirebaseEnabled, spend]);
 
   const buyCredits = useCallback((b: { coins: number; tag: string }) => {
     setAccount((a) => {

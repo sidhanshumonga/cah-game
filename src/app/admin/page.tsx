@@ -13,7 +13,7 @@ const SPACE_PACK_SAMPLE = {
     {
       "name": "Space & Cosmos",
       "free": false,
-      "price": 150,
+      "price": 200,
       "prompts": [
         "Houston, we have a problem: ____.",
         "One giant leap for ____.",
@@ -36,7 +36,7 @@ const TECH_PACK_SAMPLE = {
     {
       "name": "Tech & Startups",
       "free": false,
-      "price": 120,
+      "price": 180,
       "prompts": [
         "Step 1: ____. Step 2: profit.",
         "Our new pitch deck highlights our core competency: ____.",

@@ -5,7 +5,16 @@ service cloud.firestore {
     // Users can only read/write their own profile; admins can read all profiles
     match /users/{uid} {
       allow read: if request.auth != null && (request.auth.uid == uid || request.auth.token.email == 'sidhanshumonga28@gmail.com');
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && request.resource.data.credits <= 50
+                    && request.resource.data.admin == false;
+      allow update: if request.auth != null && request.auth.uid == uid
+                    && (request.resource.data.admin == resource.data.admin || request.auth.token.email == 'sidhanshumonga28@gmail.com')
+                    && request.resource.data.credits == resource.data.credits
+                    && request.resource.data.packs == resource.data.packs
+                    && request.resource.data.upgrades == resource.data.upgrades
+                    && request.resource.data.history == resource.data.history;
+      allow delete: if false;
     }
 
     // Feedback: anyone can submit feedback; admin can read
