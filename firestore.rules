@@ -54,9 +54,9 @@ service cloud.firestore {
           // Unauthenticated guest user:
           (request.auth == null && (
             // Joining (create)
-            (resource == null && request.resource.data.isHost == false && request.resource.data.isBot == false) ||
+            (resource == null && request.resource.data.isHost == false && !(request.resource.data.isBot == true)) ||
             // Updating their own fields (ready, connection, score)
-            (resource != null && resource.data.isHost == false && resource.data.isBot == false) ||
+            (resource != null && resource.data.isHost == false && !(resource.data.isBot == true)) ||
             // Leaving (delete)
             (request.resource == null)
           ))
