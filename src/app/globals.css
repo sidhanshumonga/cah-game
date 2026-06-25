@@ -804,6 +804,8 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
   width: 100%;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 .reveal-others::-webkit-scrollbar {
   display: none;
