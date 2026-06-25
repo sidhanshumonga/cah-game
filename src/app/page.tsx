@@ -319,6 +319,9 @@ export default function LandingPage() {
           <p className="footer-warning">
             Disclaimer: Cards Against Humanity is a mature party game containing suggestive themes, dark humor, and adult language. Player discretion is strongly advised. 18+ only.
           </p>
+          <p className="footer-warning" style={{ marginTop: '8px', opacity: 0.5, fontSize: '11px' }}>
+            This is an unofficial, independent fan-made party game. "Cards Against Humanity" is a registered trademark of Cards Against Humanity LLC. This web application is not affiliated with, authorized, sponsored, or endorsed by Cards Against Humanity LLC. All card texts and brand trademarks are the property of their respective owners.
+          </p>
           <div className="footer-links">
             <button className="linkbtn" onClick={() => router.push('/terms')}>Terms of Service</button>
             <span>·</span>

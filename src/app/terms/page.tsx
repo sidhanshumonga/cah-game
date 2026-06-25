@@ -32,21 +32,28 @@ export default function TermsPage() {
         </section>
 
         <section style={{ margin: '24px 0' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>3. User-Generated Content</h3>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>3. Trademark & Copyright Disclaimer</h3>
+          <p className="muted" style={{ fontSize: '14px' }}>
+            "Cards Against Humanity" is a registered trademark of Cards Against Humanity LLC. This application is an entirely independent, fan-made clone and has no affiliation, association, sponsorship, or endorsement with or by Cards Against Humanity LLC or any of its subsidiaries. All card content, assets, and trademarks are utilized under fair use and creative commons attribution standards where applicable, and remain the intellectual property of their respective owners.
+          </p>
+        </section>
+
+        <section style={{ margin: '24px 0' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>4. User-Generated Content</h3>
           <p className="muted" style={{ fontSize: '14px' }}>
             If you submit custom cards, prompts, or custom room names, you agree that you are solely responsible for the content of your submissions. You warrant that you will not post content that violates copyright, is explicitly hate-speech, or is illegal under local, state, or federal laws. The developers reserve the right to remove custom lobbies or accounts displaying illegal or severely abusive content.
           </p>
         </section>
 
         <section style={{ margin: '24px 0' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>4. Simulated Coins and Shop</h3>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>5. Simulated Coins and Shop</h3>
           <p className="muted" style={{ fontSize: '14px' }}>
             All coin balances, marketplace expansion packs, and account upgrades are fully simulated. No real currency is used or exchanged on this platform. Users do not acquire any proprietary or monetary interest in simulated game items.
           </p>
         </section>
 
         <section style={{ margin: '24px 0' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>5. Limitation of Liability</h3>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>6. Limitation of Liability</h3>
           <p className="muted" style={{ fontSize: '14px' }}>
             TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE DEVELOPERS AND HOSTS SHALL NOT BE LIABLE FOR ANY DAMAGES, OFFENSE, EMOTIONAL DISTRESS, OR LOSS ARISING FROM THE USE OF THIS SATIRICAL APPLICATION.
           </p>
