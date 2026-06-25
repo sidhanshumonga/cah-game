@@ -88,7 +88,8 @@ export default function StorePage() {
   }
 
   return (
-    <div className="screen create-screen" data-screen-label="Marketplace">
+    <React.Fragment>
+      <div className="screen create-screen" data-screen-label="Marketplace">
       <header className="create-head store-head">
         <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">←</button>
         <Logo />
@@ -131,13 +132,15 @@ export default function StorePage() {
                   <div key={p.id} className={"store-card" + (owned ? " store-owned" : "")}>
                     <span className="store-card-name">{p.name}</span>
                     <span className="store-card-sub">{p.cards} cards</span>
-                    <button 
-                      className="linkbtn" 
-                      style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.85, padding: '4px 0', alignSelf: 'flex-start', border: 0, background: 'transparent', cursor: 'pointer', outline: 'none' }}
-                      onClick={() => setPreviewPack(p)}
-                    >
-                      <Eye className="inline-icon" size={13} style={{ color: '#FFC93C' }} /> Preview Cards
-                    </button>
+                    {!owned && (
+                      <button 
+                        className="linkbtn" 
+                        style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.85, padding: '4px 0', alignSelf: 'flex-start', border: 0, background: 'transparent', cursor: 'pointer', outline: 'none' }}
+                        onClick={() => setPreviewPack(p)}
+                      >
+                        <Eye className="inline-icon" size={13} style={{ color: '#FFC93C' }} /> Preview Cards
+                      </button>
+                    )}
                     {p.free ? (
                       <span className="store-tag">Included free</span>
                     ) : owned ? (
@@ -190,10 +193,11 @@ export default function StorePage() {
         </div>
       </div>
 
+      </div>
       {previewPack && (
         <PackPreviewModal pack={previewPack} onClose={() => setPreviewPack(null)} />
       )}
-    </div>
+    </React.Fragment>
   );
 }
 
