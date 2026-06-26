@@ -470,7 +470,7 @@ export default function FeedbackPage() {
 
       <div className="create-body fb-body">
         <div className="fb-intro">
-          <h2 className="create-title fb-title">Feedback &amp; Roadmap</h2>
+          <h1 className="create-title fb-title">Feedback &amp; Roadmap</h1>
           <p className="fb-lead">Tell us what to build, vote on what matters, and watch it move from idea to shipped. The most-loved ideas get picked — here's where they stand.</p>
         </div>
 

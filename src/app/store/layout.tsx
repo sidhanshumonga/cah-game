@@ -3,6 +3,9 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: "Card Packs Marketplace | Store",
   description: "Expand your deck in the Cards Against Humanity Online store. Browse custom card expansion packs, upgrades, and theme decks using coins.",
+  alternates: {
+    canonical: '/store',
+  },
   openGraph: {
     title: "Card Packs & Upgrades Store | Cards Against Humanity Online",
     description: "Expand your deck in the Cards Against Humanity Online store. Browse custom card expansion packs, upgrades, and theme decks.",

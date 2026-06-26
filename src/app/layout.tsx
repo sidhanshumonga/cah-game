@@ -17,6 +17,9 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://cah-game.vercel.app'),
+  alternates: {
+    canonical: '/',
+  },
   title: {
     default: "Cards Against Humanity Online | Play Free with Friends",
     template: "%s | Cards Against Humanity Online"
