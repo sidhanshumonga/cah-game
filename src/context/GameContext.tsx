@@ -572,13 +572,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const isPack = label.startsWith("Pack: ");
       const isUpgrade = label.startsWith("Upgrade: ");
       const name = label.replace(/^(Pack:|Upgrade:)\s*/, "");
+      const itemType = isPack ? 'pack' : isUpgrade ? 'upgrade' : 'other';
+      const itemId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
+      // Log to Firebase Analytics
+      import('@/firebase/config').then(({ logAnalyticsEvent }) => {
+        logAnalyticsEvent('coin_spent', {
+          itemType,
+          itemId,
+          itemName: name,
+          cost
+        });
+      });
+
       import('@/firebase/firestore').then(({ logPurchase }) => {
         logPurchase({
           userId: userUid!,
           userEmail: userEmail || userName || 'unknown',
-          itemType: isPack ? 'pack' : isUpgrade ? 'upgrade' : 'other',
-          itemId: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+          itemType,
+          itemId,
           itemName: name,
           cost: cost,
           currency: 'coins',

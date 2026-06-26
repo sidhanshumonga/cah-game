@@ -221,13 +221,20 @@ export default function LobbyPage() {
         const uid = account.uid || account.email;
         const hostUid = await getHostUid(code);
         try {
+          const isHost = uid === hostUid;
           await joinRoom(code, {
             uid,
             name: account.name,
             color: account.color,
-            isHost: uid === hostUid,
+            isHost,
           });
           setHasJoined(true);
+
+          const { logAnalyticsEvent } = await import('@/firebase/config');
+          logAnalyticsEvent('lobby_join', {
+            code,
+            isHost
+          });
         } catch (joinErr: any) {
           console.error('[lobby] Failed to join room:', joinErr);
           alert('Failed to join the room. Please refresh or try again.');
@@ -325,6 +332,16 @@ export default function LobbyPage() {
         const judgeOrder = [players[0], ...nonHost];
         await fsStartGame(code, 1, prompt, judgeOrder[0], judgeOrder, scores);
         await updateRoom(code, { status: 'playing' });
+
+        const { logAnalyticsEvent } = await import('@/firebase/config');
+        const botsCount = currentPlayers.filter(p => p.isBot).length;
+        logAnalyticsEvent('game_start', {
+          code,
+          playersCount: currentPlayers.length,
+          humansCount: currentPlayers.length - botsCount,
+          botsCount,
+          scoreLimit: settings.scoreLimit
+        });
       } catch (e) {
         console.error("Failed to start game", e);
       }

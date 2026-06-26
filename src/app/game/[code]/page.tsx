@@ -411,7 +411,14 @@ function MultiplayerGame({ code }: { code: string }) {
 
     const { submitCard } = await import('@/firebase/firestore');
     await submitCard(code, myUid, myName, text);
-  }, [code, myUid, myName]);
+
+    const { logAnalyticsEvent } = await import('@/firebase/config');
+    logAnalyticsEvent('card_play', {
+      code,
+      roundNum: gameState?.round || 1,
+      isJudge: youAreJudge
+    });
+  }, [code, myUid, myName, gameState?.round, youAreJudge]);
 
   // Timer countdown
   const [timeLeft, setTimeLeft] = useState(settings.timer);

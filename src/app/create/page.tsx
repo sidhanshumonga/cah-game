@@ -201,6 +201,16 @@ export default function CreateRoomPage() {
     try {
       const { createRoom } = await import('@/firebase/firestore');
       await createRoom(generatedCode, activeAccount.uid || activeAccount.email, activeAccount.name, newSettings);
+      
+      const { logAnalyticsEvent } = await import('@/firebase/config');
+      logAnalyticsEvent('lobby_create', {
+        code: generatedCode,
+        maxPlayers,
+        scoreLimit,
+        timer,
+        botsCount,
+        packs: packs.join(',')
+      });
     } catch (e) {
       console.error("Failed to create Firestore room", e);
     }

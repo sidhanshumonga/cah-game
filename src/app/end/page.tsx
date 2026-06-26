@@ -250,6 +250,12 @@ function RateRound() {
       });
       if (response.ok) {
         setSent(true);
+        const { logAnalyticsEvent } = await import('@/firebase/config');
+        logAnalyticsEvent('game_end_rating', {
+          rating: rVal,
+          reasons: reasonsVal.join(','),
+          code: endData?.code || null
+        });
       } else {
         console.error('Failed to submit end-of-game rating');
       }
