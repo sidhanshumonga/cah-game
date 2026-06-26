@@ -33,7 +33,7 @@ jobs:
 
       - name: Run E2E tests with Firebase Emulators
         run: |
-          npx firebase emulators:exec --only auth,firestore "npx playwright test"
+          npx -y firebase-tools emulators:exec --only auth,firestore "node e2e/seed-packs.mjs && npx playwright test"
         env:
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: "test-cah"
           NEXT_PUBLIC_FIREBASE_EMULATOR: "true"
