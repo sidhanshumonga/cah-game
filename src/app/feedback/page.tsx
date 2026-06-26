@@ -461,7 +461,10 @@ export default function FeedbackPage() {
             } else {
               setSubmitting(true);
             }
-          }}>Suggest something</Btn>
+          }}>
+            <span className="fb-btn-text-desktop">Suggest something</span>
+            <span className="fb-btn-text-mobile">Suggest</span>
+          </Btn>
         </span>
       </header>
 
@@ -704,7 +707,7 @@ export default function FeedbackPage() {
       {submitting && (
         <React.Fragment>
           <div className="scrim scrim-open" onClick={() => setSubmitting(false)}></div>
-          <div className="fb-modal" role="dialog" aria-label="Suggest something">
+          <div className="fb-modal fb-modal-sheet" role="dialog" aria-label="Suggest something">
             <div className="fb-modal-head">
               <h3 className="fb-modal-title">What's on your mind?</h3>
               <button className="iconbtn" onClick={() => setSubmitting(false)} aria-label="Close">
@@ -746,7 +749,7 @@ export default function FeedbackPage() {
       {showAuthModal && (
         <React.Fragment>
           <div className="scrim scrim-open" style={{ zIndex: 110 }} onClick={() => setShowAuthModal(false)}></div>
-          <div className="fb-modal" role="dialog" aria-label="Google login required" style={{ zIndex: 112, width: '400px', textAlign: 'center' }}>
+          <div className="fb-modal fb-modal-dialog" role="dialog" aria-label="Google login required" style={{ zIndex: 112 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(143,123,255,0.1)', display: 'grid', placeItems: 'center', color: 'var(--accent2)' }}>
                 <AlertCircle size={28} />
