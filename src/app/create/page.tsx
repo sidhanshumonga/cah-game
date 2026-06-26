@@ -268,7 +268,7 @@ export default function CreateRoomPage() {
             </div>
             <div className="frow">
               <label className="flabel">Points to win</label>
-              <Seg options={[3, 5, 7]} value={scoreLimit} onChange={setScoreLimit} />
+              <Seg options={[1, 3, 5, 7]} value={scoreLimit} onChange={setScoreLimit} />
             </div>
             <div className="frow">
               <label className="flabel">Turn timer</label>

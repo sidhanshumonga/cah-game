@@ -1,6 +1,6 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify, decodeJwt } from 'jose';
 
 let serviceAccount: any = null;
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -47,6 +47,14 @@ export async function verifyIdToken(idToken: string) {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   if (!projectId) {
     throw new Error('NEXT_PUBLIC_FIREBASE_PROJECT_ID is not configured');
+  }
+  if (process.env.NEXT_PUBLIC_FIREBASE_EMULATOR === 'true') {
+    const payload = decodeJwt(idToken);
+    return {
+      uid: payload.sub as string,
+      email: payload.email as string,
+      ...payload,
+    };
   }
   const { payload } = await jwtVerify(idToken, JWKS, {
     issuer: `https://securetoken.google.com/${projectId}`,

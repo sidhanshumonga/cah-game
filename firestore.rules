@@ -39,24 +39,23 @@ service cloud.firestore {
     match /rooms/{code} {
       allow get: if true;
       allow list: if request.auth != null && request.auth.token.email == 'sidhanshumonga28@gmail.com';
-      allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
-      allow update: if request.auth != null && resource.data.hostUid == request.auth.uid;
-      allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
+      allow create: if (request.auth != null && request.resource.data.hostUid == request.auth.uid) ||
+                    (request.resource.data.hostUid.matches('.*@guest[.]example[.]com'));
+      allow update: if (request.auth != null && resource.data.hostUid == request.auth.uid) ||
+                    (resource.data.hostUid.matches('.*@guest[.]example[.]com'));
+      allow delete: if (request.auth != null && resource.data.hostUid == request.auth.uid) ||
+                    (resource.data.hostUid.matches('.*@guest[.]example[.]com'));
 
       match /players/{uid} {
         allow read: if true;
         allow write: if (
           // Host can write/manage any player doc in their room
           (request.auth != null && get(/databases/$(database)/documents/rooms/$(code)).data.hostUid == request.auth.uid) ||
+          (get(/databases/$(database)/documents/rooms/$(code)).data.hostUid.matches('.*@guest[.]example[.]com')) ||
           // Authenticated user can write their own player doc
           (request.auth != null && request.auth.uid == uid) ||
-          // Guest user (identified by UID pattern ending in @guest.example.com) can write their own doc
-          (uid.matches('.*@guest[.]example[.]com') && (
-            // Deletion
-            (request.resource == null) ||
-            // Creation/Update: must not make themselves host or bots
-            (request.resource.data.get('isHost', false) == false && request.resource.data.get('isBot', false) == false)
-          ))
+          // Guest user can write their own doc
+          (uid.matches('.*@guest[.]example[.]com'))
         );
       }
 

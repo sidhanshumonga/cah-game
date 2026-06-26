@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -23,6 +23,12 @@ if (isFirebaseEnabled) {
     auth = getAuth(app);
     googleProvider = new GoogleAuthProvider();
     db = getFirestore(app);
+    
+    if (process.env.NEXT_PUBLIC_FIREBASE_EMULATOR === 'true') {
+      connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+      connectFirestoreEmulator(db, '127.0.0.1', 8080);
+      console.log('[Firebase] Connected to local Emulators');
+    }
   } catch (error) {
     console.error('Firebase initialization failed:', error);
   }
