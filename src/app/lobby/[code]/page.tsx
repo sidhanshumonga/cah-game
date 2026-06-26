@@ -25,6 +25,7 @@ interface RoomPlayer {
   ready: boolean;
   isHost: boolean;
   isConnected?: boolean;
+  isBot?: boolean;
 }
 
 export default function LobbyPage() {
