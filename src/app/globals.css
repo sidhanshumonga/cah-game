@@ -2344,16 +2344,16 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
 .howto-link-q { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--dark);
   font-family: var(--font-d); font-weight: 800; font-size: 14px; }
 .howto-head-spacer { margin-left: auto; }
-.howto-body { max-width: 880px; }
-.howto-title { margin-bottom: 6px; }
-.howto-lead { font-size: 17px; opacity: 0.65; margin: 0 0 38px; text-wrap: pretty; max-width: 540px; }
-.howto-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 28px; }
+.howto-body { max-width: 880px; margin: 0 auto; }
+.howto-title { font-size: 32px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+.howto-lead { font-size: 17px; opacity: 0.7; text-align: center; max-width: 600px; margin: 0 auto 40px; text-wrap: pretty; }
+.howto-steps { list-style: none; margin: 0 auto; padding: 0; display: flex; flex-direction: column; gap: 48px; max-width: 800px; }
 .howto-step { display: grid; grid-template-columns: 1fr 240px; gap: 32px; align-items: center; background: var(--paper); color: var(--paper-fg);
   border-radius: 20px; border: 1px solid rgba(0,0,0,0.08); padding: 26px 30px; box-shadow: 0 14px 30px -20px rgba(0,0,0,0.4); }
 .howto-step:nth-child(even) { grid-template-columns: 240px 1fr; }
 .howto-step:nth-child(even) .howto-step-text { order: 2; }
 .howto-step:nth-child(even) .howto-step-art { order: 1; }
-.howto-step-num { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--dark);
+.howto-step-num { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--paper-fg);
   font-family: var(--font-d); font-weight: 800; font-size: 18px; margin-bottom: 12px; }
 .howto-step-title { font-family: var(--font-d); font-weight: 700; font-size: 23px; margin: 0 0 8px; }
 .howto-step-body { font-size: 15px; line-height: 1.5; opacity: 0.72; margin: 0; text-wrap: pretty; }
@@ -2375,16 +2375,24 @@ button.acard-swapsel:hover { transform: translateY(-12px) scale(1.02); }
 .howto-art-judge .howto-crown { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 30px; height: 30px; color: var(--accent2); z-index: 4; }
 .howto-art-react { gap: 8px; font-size: 34px; }
 .howto-art-react .howto-emoji:nth-child(odd) { transform: translateY(-8px); }
-.howto-tips-title { font-family: var(--font-d); font-weight: 700; font-size: 20px; margin: 40px 0 14px; }
-.howto-tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-.howto-tip { display: flex; flex-direction: column; gap: 5px; background: color-mix(in oklab, var(--fg) 5%, transparent); border-radius: 14px; padding: 16px 18px; }
-.howto-tip-h { font-family: var(--font-d); font-weight: 700; font-size: 16px; }
-.howto-tip-b { font-size: 13.5px; line-height: 1.45; opacity: 0.65; }
+.howto-tips-title { font-family: var(--font-d); font-weight: 700; font-size: 24px; text-align: center; margin: 64px 0 24px; }
+.howto-tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; max-width: 800px; margin: 0 auto 48px; }
+.howto-tip { display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; }
+.howto-tip-h { font-family: var(--font-d); font-weight: 800; font-size: 16px; }
+.howto-tip-b { font-size: 13.5px; line-height: 1.5; opacity: 0.7; }
 .howto-cta { display: flex; gap: 12px; justify-content: center; margin-top: 44px; flex-wrap: wrap; }
 @media (max-width: 680px) {
-  .howto-step, .howto-step:nth-child(even) { grid-template-columns: 1fr; gap: 22px; }
+  .howto-title { font-size: 28px; }
+  .howto-lead { font-size: 15px; margin-bottom: 30px; padding: 0 10px; }
+  .howto-steps { gap: 32px; }
+  .howto-step, .howto-step:nth-child(even) { grid-template-columns: 1fr; gap: 22px; padding: 20px 18px; border-radius: 16px; }
   .howto-step:nth-child(even) .howto-step-text { order: 1; }
   .howto-step:nth-child(even) .howto-step-art { order: 2; }
+  .howto-step-num { width: 28px; height: 28px; font-size: 14px; margin-bottom: 8px; }
+  .howto-step-title { font-size: 20px; }
+  .howto-step-body { font-size: 14px; }
+  .howto-tips-title { font-size: 20px; margin-top: 48px; }
+  .howto-tips { gap: 16px; margin-bottom: 36px; }
 }
 
 /* ---------- Feedback tab (landing) ---------- */

@@ -83,35 +83,33 @@ export default function HowToPlayPage() {
         <span className="howto-head-spacer"></span>
       </header>
       <div className="create-body howto-body">
-        <h1 className="create-title howto-title" style={{ fontSize: '32px', fontWeight: 800, textAlign: 'center', marginBottom: '8px' }}>How to play</h1>
-        <p className="howto-lead" style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto 40px', opacity: 0.7 }}>Fill in the blank, make your friends laugh, win the round. That's the whole game.</p>
+        <h1 className="create-title howto-title">How to play</h1>
+        <p className="howto-lead">Fill in the blank, make your friends laugh, win the round. That's the whole game.</p>
 
-        <ol className="howto-steps" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '48px', maxWidth: '800px', margin: '0 auto' }}>
+        <ol className="howto-steps">
           {steps.map((s) => (
-            <li key={s.n} className="howto-step" style={{ display: 'flex', alignItems: 'center', gap: '32px', justifyContent: 'space-between' }}>
-              <div className="howto-step-text" style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                  <span className="howto-step-num" style={{ background: 'var(--accent)', color: 'var(--paper-fg)', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px' }}>{s.n}</span>
-                  <h3 className="howto-step-title" style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>{s.title}</h3>
-                </div>
-                <p className="howto-step-body" style={{ opacity: 0.7, fontSize: '14px', lineHeight: 1.5, margin: 0 }}>{s.body}</p>
+            <li key={s.n} className="howto-step">
+              <div className="howto-step-text">
+                <span className="howto-step-num">{s.n}</span>
+                <h3 className="howto-step-title">{s.title}</h3>
+                <p className="howto-step-body">{s.body}</p>
               </div>
-              <div className="howto-step-art" style={{ flexShrink: 0, width: '240px', display: 'flex', justifyContent: 'center' }}>{s.art}</div>
+              <div className="howto-step-art">{s.art}</div>
             </li>
           ))}
         </ol>
 
-        <h3 className="howto-tips-title" style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', marginTop: '64px', marginBottom: '24px' }}>Good to know</h3>
-        <div className="howto-tips" style={{ display: 'flex', gap: '24px', maxWidth: '800px', margin: '0 auto 48px' }}>
+        <h3 className="howto-tips-title">Good to know</h3>
+        <div className="howto-tips">
           {tips.map((t) => (
-            <div key={t.h} className="howto-tip" style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <span className="howto-tip-h" style={{ display: 'block', fontWeight: 800, fontSize: '16px', marginBottom: '8px' }}>{t.h}</span>
-              <span className="howto-tip-b" style={{ display: 'block', fontSize: '13px', opacity: 0.7, lineHeight: 1.5 }}>{t.b}</span>
+            <div key={t.h} className="howto-tip">
+              <span className="howto-tip-h">{t.h}</span>
+              <span className="howto-tip-b">{t.b}</span>
             </div>
           ))}
         </div>
 
-        <div className="howto-cta" style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '40px' }}>
+        <div className="howto-cta">
           <Btn big={true} onClick={handleCreate}>Create a room</Btn>
           <Btn big={true} variant="secondary" onClick={handleBack}>Back</Btn>
         </div>
