@@ -240,6 +240,21 @@ export default function LandingPage() {
 
   return (
     <div className="screen landing" data-screen-label="Landing">
+      <div style={{
+        background: '#ff4d4f',
+        color: '#fff',
+        padding: '10px 20px',
+        textAlign: 'center',
+        fontWeight: 'bold',
+        fontSize: '14px',
+        width: '100%',
+        zIndex: 1000,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        borderRadius: '8px',
+        marginBottom: '16px'
+      }}>
+        ⚠️ We are currently investigating an issue with room creation for guest/unlogged players. A fix is being deployed shortly!
+      </div>
       <div className="landing-top">
         <div className="landing-nav">
           <button className="nav-link" onClick={() => router.push('/howto')}>Rules</button>
