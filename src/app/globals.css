@@ -16,7 +16,7 @@ button { font-family: inherit; cursor: pointer; }
 input { font-family: inherit; }
 
 .cah-app { min-height: 100vh; color: var(--fg); }
-.screen { min-height: 100vh; position: relative; overflow-x: hidden; animation: fadeUp calc(var(--m) * 0.45s) cubic-bezier(.2,.8,.3,1) both; }
+.screen { min-height: 100vh; position: relative; overflow-x: hidden; animation: fadeIn calc(var(--m) * 0.45s) cubic-bezier(.2,.8,.3,1) both; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } }
 .muted { opacity: 0.55; font-weight: 400; }
 
