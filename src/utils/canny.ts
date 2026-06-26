@@ -61,7 +61,12 @@ export async function cannyRequest(endpoint: string, payload: Record<string, any
     throw new Error(`Canny API request failed: ${errText || response.statusText}`);
   }
 
-  return response.json();
+  const resText = await response.text();
+  try {
+    return JSON.parse(resText);
+  } catch (e) {
+    return resText;
+  }
 }
 
 /**
@@ -85,19 +90,36 @@ export async function listCannyPosts(params: {
 }
 
 /**
+ * Finds or creates a Canny user based on your system's userID.
+ */
+export async function findOrCreateCannyUser(params: {
+  userID: string;
+  name: string;
+  email?: string;
+  avatarURL?: string;
+}): Promise<{ id: string }> {
+  return cannyRequest('/users/find_or_create', {
+    userID: params.userID,
+    name: params.name,
+    email: params.email,
+    avatarURL: params.avatarURL,
+  });
+}
+
+/**
  * Submits a new feedback post (e.g. bug or feature request) to Canny on behalf of a user.
  */
 export async function createCannyPost(params: {
-  authorToken: string;
+  authorID: string;
   title: string;
   details: string;
-  boardId: string;
+  boardID: string;
 }) {
   return cannyRequest('/posts/create', {
-    authorToken: params.authorToken,
+    authorID: params.authorID,
     title: params.title,
     details: params.details,
-    boardId: params.boardId,
+    boardID: params.boardID,
   });
 }
 
@@ -105,12 +127,12 @@ export async function createCannyPost(params: {
  * Adds an upvote to a post on behalf of a user.
  */
 export async function createCannyVote(params: {
-  authorToken: string;
-  postId: string;
+  voterID: string;
+  postID: string;
 }) {
   return cannyRequest('/votes/create', {
-    authorToken: params.authorToken,
-    postId: params.postId,
+    voterID: params.voterID,
+    postID: params.postID,
   });
 }
 
@@ -118,12 +140,12 @@ export async function createCannyVote(params: {
  * Removes an upvote from a post on behalf of a user.
  */
 export async function deleteCannyVote(params: {
-  authorToken: string;
-  postId: string;
+  voterID: string;
+  postID: string;
 }) {
   return cannyRequest('/votes/delete', {
-    authorToken: params.authorToken,
-    postId: params.postId,
+    voterID: params.voterID,
+    postID: params.postID,
   });
 }
 
@@ -142,13 +164,13 @@ export async function listCannyComments(params: {
  * Creates a comment on a post on behalf of a user.
  */
 export async function createCannyComment(params: {
-  authorToken: string;
-  postId: string;
+  authorID: string;
+  postID: string;
   value: string;
 }) {
   return cannyRequest('/comments/create', {
-    authorToken: params.authorToken,
-    postId: params.postId,
+    authorID: params.authorID,
+    postID: params.postID,
     value: params.value,
   });
 }

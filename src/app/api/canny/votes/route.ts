@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { signCannyJWT, createCannyVote, deleteCannyVote } from '@/utils/canny';
+import { findOrCreateCannyUser, createCannyVote, deleteCannyVote } from '@/utils/canny';
 import { verifyIdToken } from '@/firebase/admin';
 
 // POST: Handles adding or removing a vote on behalf of a user
@@ -60,31 +60,31 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Construct Canny user object from verified token claims
-    const user = {
-      id: decodedToken.uid,
+    // 3. Find or create the user in Canny using their Firebase UID as userID
+    const cannyUser = await findOrCreateCannyUser({
+      userID: decodedToken.uid,
       name: decodedToken.name || decodedToken.email?.split('@')[0] || 'Google User',
       email: decodedToken.email,
       avatarURL: decodedToken.picture || undefined,
-    };
+    });
 
-    // 4. Generate SSO JWT token for user
-    const authorToken = await signCannyJWT(user);
-
-    // 5. Perform the vote operation (create or delete)
+    // 4. Perform the vote operation (create or delete)
     let result;
     if (vote) {
       result = await createCannyVote({
-        authorToken,
-        postId,
+        voterID: cannyUser.id,
+        postID: postId,
       });
     } else {
       result = await deleteCannyVote({
-        authorToken,
-        postId,
+        voterID: cannyUser.id,
+        postID: postId,
       });
     }
 
+    if (result === 'success') {
+      return NextResponse.json({ success: true });
+    }
     return NextResponse.json(result);
   } catch (err: any) {
     console.error('[Canny Votes API] Error processing vote:', err);

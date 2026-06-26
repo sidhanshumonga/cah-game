@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listCannyComments, signCannyJWT, createCannyComment } from '@/utils/canny';
+import { listCannyComments, findOrCreateCannyUser, createCannyComment } from '@/utils/canny';
 import { verifyIdToken } from '@/firebase/admin';
 
 // GET: Lists comments for a post
@@ -84,21 +84,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Construct Canny user object from verified token claims
-    const user = {
-      id: decodedToken.uid,
+    // 3. Find or create the user in Canny using their Firebase UID as userID
+    const cannyUser = await findOrCreateCannyUser({
+      userID: decodedToken.uid,
       name: decodedToken.name || decodedToken.email?.split('@')[0] || 'Google User',
       email: decodedToken.email,
       avatarURL: decodedToken.picture || undefined,
-    };
+    });
 
-    // 4. Generate SSO JWT token for Canny
-    const authorToken = await signCannyJWT(user);
-
-    // 5. Submit the comment to Canny
+    // 4. Submit the comment to Canny
     const createdComment = await createCannyComment({
-      authorToken,
-      postId,
+      authorID: cannyUser.id,
+      postID: postId,
       value: value.trim(),
     });
 
