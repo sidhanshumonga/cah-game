@@ -197,17 +197,50 @@ function RateRound() {
   const { endData, account } = useGameContext();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
+  const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [sent, setSent] = useState(false);
   const labels = ["", "Meh", "Okay", "Good", "Great", "Hilarious"];
   const shown = hover || rating;
 
-  async function submit(rVal: number) {
+  const getOptionsForRating = (num: number) => {
+    if (num <= 2) {
+      return [
+        "Encountered bugs / glitches",
+        "Cards were not funny",
+        "Gameplay felt too slow",
+        "UI was hard to navigate"
+      ];
+    } else if (num === 3) {
+      return [
+        "Need more card variety",
+        "Decent, but needs polish",
+        "Lobby settings were limited",
+        "Bots could be improved"
+      ];
+    } else {
+      return [
+        "Loved the card humor!",
+        "Super smooth gameplay",
+        "Beautiful & clean UI",
+        "Bots made it fun to play"
+      ];
+    }
+  };
+
+  const toggleReason = (reason: string) => {
+    setSelectedReasons(prev =>
+      prev.includes(reason) ? prev.filter(r => r !== reason) : [...prev, reason]
+    );
+  };
+
+  async function submit(rVal: number, reasonsVal: string[]) {
     try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rating: rVal,
+          reasons: reasonsVal,
           comment: "",
           uid: account?.uid || null,
           email: account?.email || null,
@@ -227,7 +260,7 @@ function RateRound() {
 
   const handleStarClick = (num: number) => {
     setRating(num);
-    submit(num);
+    setSelectedReasons([]);
   };
 
   if (sent) {
@@ -264,6 +297,37 @@ function RateRound() {
         ))}
       </div>
       <span className="rate-label">{labels[shown] || "\u00A0"}</span>
+
+      {rating > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '12px', width: '100%' }}>
+          <span style={{ fontSize: '13px', opacity: 0.8, marginBottom: '8px', fontWeight: 600 }}>
+            {rating <= 2 ? "What went wrong?" : rating === 3 ? "How can we improve?" : "What did you love?"}
+          </span>
+          <div className="rate-chips">
+            {getOptionsForRating(rating).map((opt) => {
+              const isSelected = selectedReasons.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  className={`rate-chip ${isSelected ? 'rate-chip-selected' : ''}`}
+                  onClick={() => toggleReason(opt)}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="rate-submit-btn"
+            disabled={selectedReasons.length === 0}
+            onClick={() => submit(rating, selectedReasons)}
+          >
+            Submit Feedback
+          </button>
+        </div>
+      )}
     </div>
   );
 }

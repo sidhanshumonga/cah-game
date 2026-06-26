@@ -757,11 +757,30 @@ export default function AdminPage() {
                                   </span>
                                 )}
                               </div>
-                              <p style={{ margin: '4px 0 0', fontSize: '13px', lineHeight: 1.45, color: '#e0e0e0', textWrap: 'pretty' }}>
-                                "{f.comment || 'No comment'}"
-                              </p>
+                              {f.comment && (
+                                <p style={{ margin: '4px 0 0', fontSize: '13px', lineHeight: 1.45, color: '#e0e0e0', textWrap: 'pretty' }}>
+                                  "{f.comment}"
+                                </p>
+                              )}
+                              {f.reasons && Array.isArray(f.reasons) && f.reasons.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                                  {f.reasons.map((reason: string, rIdx: number) => (
+                                    <span key={rIdx} style={{
+                                      fontSize: '11px',
+                                      padding: '2px 8px',
+                                      borderRadius: '12px',
+                                      background: 'rgba(255, 255, 255, 0.08)',
+                                      color: 'rgba(255, 255, 255, 0.85)',
+                                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                                      fontWeight: 600
+                                    }}>
+                                      {reason}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                               {f.email && (
-                                <span style={{ fontSize: '11px', opacity: 0.4, marginTop: '2px' }}>
+                                <span style={{ fontSize: '11px', opacity: 0.4, marginTop: '4px' }}>
                                   By: {f.email}
                                 </span>
                               )}

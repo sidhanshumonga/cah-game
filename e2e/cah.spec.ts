@@ -174,6 +174,14 @@ test.describe('Cards Against Humanity - E2E Testing Suite', () => {
     const stars = page.locator('button.rate-star');
     await stars.nth(4).click();
 
+    // Select at least one chip option (e.g. first chip)
+    const chip = page.locator('button.rate-chip').first();
+    await chip.waitFor({ state: 'visible', timeout: 5000 });
+    await chip.click();
+
+    // Click "Submit Feedback"
+    await page.click('button.rate-submit-btn');
+
     // Verify rating success message
     await expect(page.locator('.rate-thanks')).toContainText('Thanks for rating!');
 
