@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useGameContext } from '@/context/GameContext';
 import { Btn } from '@/components/components';
 import { Megaphone, Bot } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function FeedbackBanner() {
   const [dismissed, setDismissed] = useState(true);
@@ -11,6 +13,8 @@ export default function FeedbackBanner() {
   const [text, setText] = useState("");
   const [sent, setSent] = useState(false);
   const { account, isHydrated } = useGameContext();
+  const pathname = usePathname();
+  const isHiddenPage = pathname === '/' || pathname === '/feedback';
 
   // Load dismissed state on mount
   useEffect(() => {
@@ -64,8 +68,7 @@ export default function FeedbackBanner() {
       {!dismissed && (
         <div className="feedback-banner">
           <span className="feedback-banner-text">
-            <Megaphone className="inline-icon" size={14} /> We hear your feedback! Drop your <button className="feedback-banner-link" onClick={() => setOpen(true)}>feedback or suggestions</button> here. 
-            <strong> Bots are now live! Next up: Smart AI Bots coming soon! <Bot className="inline-icon" size={14} /></strong>
+            <Megaphone className="inline-icon" size={14} /> We hear you! Visit our new <Link href="/feedback" className="feedback-banner-link">Feedback &amp; Roadmap Board</Link> to suggest features, report bugs, and vote on what we build next!
           </span>
           <button type="button" className="feedback-banner-close" onClick={handleDismiss} aria-label="Close banner">✕</button>
         </div>
@@ -105,7 +108,7 @@ export default function FeedbackBanner() {
         ) : null}
         
         {/* Floating feedback button (visible when banner is dismissed) */}
-        {dismissed && !open && (
+        {dismissed && !open && !isHiddenPage && (
           <button type="button" className="fbbtn" onClick={() => setOpen(true)}>
             <span className="fbbtn-dot"></span> Feedback
           </button>

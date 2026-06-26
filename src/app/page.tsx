@@ -241,6 +241,10 @@ export default function LandingPage() {
   return (
     <div className="screen landing" data-screen-label="Landing">
       <div className="landing-top">
+        <div className="landing-nav">
+          <button className="nav-link" onClick={() => router.push('/howto')}>Rules</button>
+          <button className="nav-link" onClick={() => router.push('/feedback')}>Feedback</button>
+        </div>
         {account ? (
           <button className="userchip" onClick={handleProfile}>
             <Avatar player={account} size={26} />
@@ -309,9 +313,7 @@ export default function LandingPage() {
           <li>Phones, laptops, whatever</li>
         </ul>
         
-        <button className="howto-link" onClick={() => router.push('/howto')}>
-          <span className="howto-link-q">?</span> New here? How to play
-        </button>
+        {/* Howto play guide moved to top navigation */}
 
         <CrossPromo />
 

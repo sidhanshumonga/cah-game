@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useGameContext } from '@/context/GameContext';
 import { Avatar, Coin, Btn, ConfettiBurst } from '@/components/components';
@@ -196,19 +197,18 @@ function RateRound() {
   const { endData, account } = useGameContext();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
-  const [note, setNote] = useState("");
   const [sent, setSent] = useState(false);
   const labels = ["", "Meh", "Okay", "Good", "Great", "Hilarious"];
   const shown = hover || rating;
 
-  async function submit(rVal: number, nVal: string) {
+  async function submit(rVal: number) {
     try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rating: rVal,
-          comment: nVal.trim(),
+          comment: "",
           uid: account?.uid || null,
           email: account?.email || null,
           code: endData?.code || null,
@@ -227,17 +227,21 @@ function RateRound() {
 
   const handleStarClick = (num: number) => {
     setRating(num);
-  };
-
-  const handleSendClick = () => {
-    submit(rating, note);
+    submit(num);
   };
 
   if (sent) {
     return (
-      <div className="rate rate-done">
+      <div className="rate rate-done" style={{ textAlign: 'center' }}>
         <span className="rate-check">✓</span>
-        <span className="rate-thanks">Thanks for the feedback!</span>
+        <span className="rate-thanks">Thanks for rating!</span>
+        <div style={{ marginTop: '14px', fontSize: '13px', opacity: 0.8, lineHeight: 1.45 }}>
+          Want to suggest new features or report bugs?
+          <br />
+          <Link href="/feedback" style={{ color: 'var(--accent)', fontWeight: 700, textDecoration: 'underline', marginTop: '6px', display: 'inline-block' }}>
+            Share on our feedback board →
+          </Link>
+        </div>
       </div>
     );
   }
@@ -260,19 +264,6 @@ function RateRound() {
         ))}
       </div>
       <span className="rate-label">{labels[shown] || "\u00A0"}</span>
-      {rating ? (
-        <div className="rate-followup">
-          <input
-            className="input rate-input"
-            placeholder="Anything to add? (optional)"
-            value={note}
-            maxLength={120}
-            onChange={(e) => setNote(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSendClick(); }}
-          />
-          <Btn onClick={handleSendClick}>Send</Btn>
-        </div>
-      ) : null}
     </div>
   );
 }
