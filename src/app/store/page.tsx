@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameContext, ownsPack, sortPacks, isUserIndian, Pack } from '@/context/GameContext';
 import { Logo, Coin, LockIcon, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
-import { Eye, X } from 'lucide-react';
+import { ChevronLeft, Eye, X } from 'lucide-react';
 
 const STORE_SECTIONS = [
   { id: "packs", label: "Card packs" },
@@ -91,7 +91,9 @@ export default function StorePage() {
     <React.Fragment>
       <div className="screen create-screen" data-screen-label="Marketplace">
       <header className="create-head store-head">
-        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">←</button>
+        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
         <Logo />
         <span className="store-balance">
           {account ? (

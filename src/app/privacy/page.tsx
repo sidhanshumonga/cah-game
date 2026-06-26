@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo, Btn } from '@/components/components';
+import { ChevronLeft } from 'lucide-react';
 
 export default function PrivacyPage() {
   const router = useRouter();
@@ -10,7 +11,9 @@ export default function PrivacyPage() {
   return (
     <div className="screen create-screen" data-screen-label="Privacy Policy">
       <header className="create-head">
-        <button className="iconbtn create-back" onClick={() => router.back()} aria-label="Back">←</button>
+        <button className="iconbtn create-back" onClick={() => router.back()} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
         <Logo />
       </header>
       <div className="create-body" style={{ maxWidth: '680px', margin: '0 auto', textAlign: 'left', lineHeight: 1.6 }}>

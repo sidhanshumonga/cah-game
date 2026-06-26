@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameContext, maxPlayersFor, ownsPack, sortPacks, isUserIndian } from '@/context/GameContext';
 import { Logo, Coin, LockIcon, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
-import { Bot } from 'lucide-react';
+import { Bot, ChevronLeft } from 'lucide-react';
 
 const MAX_PACKS = 8;
 
@@ -226,7 +226,9 @@ export default function CreateRoomPage() {
   return (
     <div className="screen create-screen" data-screen-label="Create Room">
       <header className="create-head">
-        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">←</button>
+        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
         <Logo />
       </header>
       <div className="create-body">

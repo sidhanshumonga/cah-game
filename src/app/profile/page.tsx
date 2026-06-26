@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameContext } from '@/context/GameContext';
 import { Avatar, Coin, Logo, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
+import { ChevronLeft } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -64,7 +65,9 @@ export default function ProfilePage() {
   return (
     <div className="screen create-screen" data-screen-label="Profile">
       <header className="create-head">
-        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">←</button>
+        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
         <Logo />
       </header>
       <div className="create-body">

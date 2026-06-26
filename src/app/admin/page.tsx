@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameContext, Pack } from '@/context/GameContext';
 import { Logo, Btn, Coin } from '@/components/components';
 import { auth, isFirebaseEnabled } from '@/firebase/config';
+import { ChevronLeft } from 'lucide-react';
 
 const ADMIN_TOKEN_SECRET = "admin-secret-token-123";
 
@@ -484,7 +485,9 @@ export default function AdminPage() {
   return (
     <div className="screen create-screen admin-screen" data-screen-label="Admin Console">
       <header className="create-head">
-        <button className="iconbtn create-back" onClick={() => router.push('/')} aria-label="Back">←</button>
+        <button className="iconbtn create-back" onClick={() => router.push('/')} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
         <Logo />
         <span className="store-balance">
           <button className="linkbtn" onClick={handleSignOut}>Log Out</button>

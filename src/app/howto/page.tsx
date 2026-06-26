@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo, Btn, Avatar, PromptCard, AnswerCard, CrownIcon } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
+import { ChevronLeft } from 'lucide-react';
 
 export default function HowToPlayPage() {
   const router = useRouter();
@@ -78,7 +79,9 @@ export default function HowToPlayPage() {
   return (
     <div className="screen create-screen" data-screen-label="How to Play">
       <header className="create-head store-head">
-        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">←</button>
+        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
         <Logo />
         <span className="howto-head-spacer"></span>
       </header>
@@ -90,8 +93,10 @@ export default function HowToPlayPage() {
           {steps.map((s) => (
             <li key={s.n} className="howto-step">
               <div className="howto-step-text">
-                <span className="howto-step-num">{s.n}</span>
-                <h3 className="howto-step-title">{s.title}</h3>
+                <div className="howto-step-header">
+                  <span className="howto-step-num">{s.n}</span>
+                  <h3 className="howto-step-title">{s.title}</h3>
+                </div>
                 <p className="howto-step-body">{s.body}</p>
               </div>
               <div className="howto-step-art">{s.art}</div>

@@ -6,6 +6,7 @@ import { useGameContext, getUserRegion, RegionInfo } from '@/context/GameContext
 import { Logo, Btn, Coin } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 import { auth, isFirebaseEnabled } from '@/firebase/config';
+import { ChevronLeft } from 'lucide-react';
 
 export default function CoinsPage() {
   const router = useRouter();
@@ -99,7 +100,9 @@ export default function CoinsPage() {
   return (
     <div className="screen create-screen" data-screen-label="Coins">
       <header className="create-head store-head">
-        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">←</button>
+        <button className="iconbtn create-back" onClick={handleBack} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
         <Logo />
         <span className="store-balance">
           {account ? (
