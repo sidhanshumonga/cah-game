@@ -153,14 +153,12 @@ function SampleDeck() {
 }
 
 const OTHER_GAME = {
-  name: "Hot Seat",
-  pitch: "The party game where your friends answer for you. Awkward, guaranteed.",
-  url: "https://your-other-game.example.com"
+  name: "Blank Slate",
+  pitch: "The word-matching party game where great minds think alike.",
+  url: "https://blankslate.gg?ref=cah-game&utm_source=cah-game&utm_medium=referral&utm_campaign=cross-promo"
 };
 
 function CrossPromo() {
-  return null; // Hidden for now
-  /*
   return (
     <a className="crosspromo" href={OTHER_GAME.url} target="_blank" rel="noopener noreferrer">
       <span className="crosspromo-badge">New</span>
@@ -173,7 +171,6 @@ function CrossPromo() {
       <span className="crosspromo-go">Play<span className="crosspromo-arrow">→</span></span>
     </a>
   );
-  */
 }
 
 export default function LandingPage() {
