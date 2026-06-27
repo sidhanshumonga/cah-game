@@ -520,7 +520,6 @@ export default function FeedbackPage() {
             <div className="fb-list" style={{ opacity: loading ? 0.7 : 1, transition: 'opacity 0.15s' }}>
               {filteredPosts.map((p) => {
                 const isVoted = !!localVotes[p.id];
-                const displayVotes = p.votes + (isVoted ? 1 : 0);
 
                 return (
                   <div key={p.id} className="fb-post" role="button" tabIndex={0} onClick={() => setOpenId(p.id)}
@@ -532,7 +531,7 @@ export default function FeedbackPage() {
                       aria-pressed={isVoted}
                     >
                       <ChevronUp size={15} />
-                      <span className="fb-vote-num">{displayVotes}</span>
+                      <span className="fb-vote-num">{p.votes}</span>
                     </button>
 
                     <span className="fb-post-main">
@@ -590,7 +589,6 @@ export default function FeedbackPage() {
                   <div className="fb-rm-list">
                     {col.map((p) => {
                       const isVoted = !!localVotes[p.id];
-                      const displayVotes = p.votes + (isVoted ? 1 : 0);
 
                       return (
                         <div key={p.id} className="fb-rm-card" role="button" tabIndex={0} onClick={() => setOpenId(p.id)}
@@ -611,7 +609,7 @@ export default function FeedbackPage() {
                               style={{ width: '46px', padding: '7px 0', flexDirection: 'row', gap: '5px' }}
                             >
                               <ChevronUp size={13} />
-                              <span className="fb-vote-num" style={{ fontSize: '14px' }}>{displayVotes}</span>
+                              <span className="fb-vote-num" style={{ fontSize: '14px' }}>{p.votes}</span>
                             </button>
                           </span>
                         </div>
@@ -650,7 +648,7 @@ export default function FeedbackPage() {
                   onClick={() => handleVote(openPost.id)}
                 >
                   <ChevronUp size={18} />
-                  <span className="fb-vote-num">{openPost.votes + (!!localVotes[openPost.id] ? 1 : 0)}</span>
+                  <span className="fb-vote-num">{openPost.votes}</span>
                 </button>
                 <h3 className="fb-detail-title">{openPost.title}</h3>
               </div>
