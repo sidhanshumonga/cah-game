@@ -75,6 +75,12 @@ function MultiplayerGame({ code }: { code: string }) {
   const phase = gameState?.phase || "pick";
   const [roomPlayers, setRoomPlayers] = useState<any[]>([]);
   const [roomLoaded, setRoomLoaded] = useState(false);
+  const [hostUid, setHostUid] = useState<string | null>(null);
+
+  const isHost = useMemo(() => {
+    if (hostUid) return myUid === hostUid;
+    return roomPlayers.find(p => p.uid === myUid)?.isHost || false;
+  }, [roomPlayers, myUid, hostUid]);
 
   // Local per-player private hand (not in Firestore)
   const drawA = useRef<() => string>(null!);
@@ -186,6 +192,9 @@ function MultiplayerGame({ code }: { code: string }) {
           return;
         }
         setRoomExists(true);
+        if (roomData.hostUid) {
+          setHostUid(roomData.hostUid);
+        }
         if (roomData.settings) {
           setSettings(roomData.settings);
         }
@@ -243,6 +252,82 @@ function MultiplayerGame({ code }: { code: string }) {
       }
     }
   }, [isHydrated, roomLoaded, roomExists, gameState, myUid, router]);
+
+  // Auto-kick disconnected non-host players after 30 seconds (host only)
+  useEffect(() => {
+    if (!isHost || !roomPlayers.length) return;
+
+    const interval = setInterval(async () => {
+      const now = Date.now();
+      const { kickPlayer } = await import('@/firebase/firestore');
+      
+      for (const player of roomPlayers) {
+        if (!player.isHost && player.isConnected === false && player.disconnectedAt) {
+          let discTime = 0;
+          const discAt = player.disconnectedAt;
+          if (typeof discAt.toMillis === 'function') {
+            discTime = discAt.toMillis();
+          } else if (discAt.seconds) {
+            discTime = discAt.seconds * 1000;
+          } else if (typeof discAt === 'number') {
+            discTime = discAt;
+          } else if (discAt instanceof Date) {
+            discTime = discAt.getTime();
+          } else {
+            discTime = new Date(discAt).getTime();
+          }
+
+          if (discTime && (now - discTime > 30000)) {
+            console.log(`[game] Auto-kicking player ${player.name} (${player.uid}) due to disconnection for 30s.`);
+            kickPlayer(code, player.uid).catch(e => console.error("Failed to auto-kick player:", e));
+          }
+        }
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isHost, roomPlayers, code]);
+
+  // Auto-rejoin when disconnected and removed from roomPlayers (e.g. kicked)
+  useEffect(() => {
+    if (!isHydrated || !gameState || !roomLoaded || !account) return;
+    
+    // Check if I am one of the original players
+    const isOriginal = gameState.originalPlayers && gameState.originalPlayers.includes(myUid);
+    if (!isOriginal) return;
+
+    // Check if I am currently in the room players list
+    const inRoom = roomPlayers.some(p => p.uid === myUid);
+    if (inRoom) return;
+
+    // We are not in the room players list but we are an original player - let's rejoin!
+    async function performRejoin() {
+      console.log(`[game] Player ${myUid} is an original player but not in roomPlayers. Rejoining...`);
+      const { joinRoom } = await import('@/firebase/firestore');
+      
+      // Determine score from gameState.scores[myUid]
+      const score = (gameState.scores && typeof gameState.scores[myUid] === 'number')
+        ? gameState.scores[myUid]
+        : 0;
+
+      // Determine isHost status
+      const myIsHost = hostUid ? (myUid === hostUid) : false;
+
+      try {
+        await joinRoom(code, {
+          uid: myUid,
+          name: account.name,
+          color: account.color,
+          isHost: myIsHost,
+        }, score);
+        console.log(`[game] Successfully rejoined room ${code} with score ${score}`);
+      } catch (err) {
+        console.error(`[game] Failed to rejoin room ${code}:`, err);
+      }
+    }
+
+    performRejoin();
+  }, [isHydrated, gameState, roomPlayers, roomLoaded, account, myUid, hostUid, code]);
 
   // Sync unread messages count
   useEffect(() => {
@@ -384,7 +469,6 @@ function MultiplayerGame({ code }: { code: string }) {
 
   const judgeUid = gameState?.judgeUid;
   const youAreJudge = judgeUid === myUid;
-  const isHost = useMemo(() => roomPlayers.find(p => p.uid === myUid)?.isHost || false, [roomPlayers, myUid]);
   const subs = gameState?.submissions || [];
   const nonJudgePlayers = roomPlayers.filter(p => p.uid !== judgeUid);
   const needed = nonJudgePlayers.length;

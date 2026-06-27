@@ -199,7 +199,8 @@ export default function LandingPage() {
       setErrorMsg("");
       try {
         const { verifyRoom } = await import('@/firebase/firestore');
-        const res = await verifyRoom(code);
+        const myUid = account ? (account.uid || account.email) : undefined;
+        const res = await verifyRoom(code, myUid);
         if (!res.valid) {
           if (res.error === 'not_found') {
             setErrorMsg("Room not found. Check the code.");

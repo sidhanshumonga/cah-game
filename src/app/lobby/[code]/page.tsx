@@ -26,6 +26,7 @@ interface RoomPlayer {
   isHost: boolean;
   isConnected?: boolean;
   isBot?: boolean;
+  disconnectedAt?: any;
 }
 
 export default function LobbyPage() {
@@ -144,6 +145,41 @@ export default function LobbyPage() {
   useEffect(() => {
     statusRef.current = roomStatus;
   }, [roomStatus]);
+
+  // Auto-kick disconnected non-host players after 30 seconds (host only)
+  useEffect(() => {
+    if (!isRealHost || !roomPlayers.length) return;
+
+    const interval = setInterval(async () => {
+      const now = Date.now();
+      const { kickPlayer } = await import('@/firebase/firestore');
+      
+      for (const player of roomPlayers) {
+        if (!player.isHost && player.isConnected === false && player.disconnectedAt) {
+          let discTime = 0;
+          const discAt = player.disconnectedAt;
+          if (typeof discAt.toMillis === 'function') {
+            discTime = discAt.toMillis();
+          } else if (discAt.seconds) {
+            discTime = discAt.seconds * 1000;
+          } else if (typeof discAt === 'number') {
+            discTime = discAt;
+          } else if (discAt instanceof Date) {
+            discTime = discAt.getTime();
+          } else {
+            discTime = new Date(discAt).getTime();
+          }
+
+          if (discTime && (now - discTime > 30000)) {
+            console.log(`[lobby] Auto-kicking player ${player.name} (${player.uid}) due to disconnection for 30s.`);
+            kickPlayer(code, player.uid).catch(e => console.error("Failed to auto-kick player:", e));
+          }
+        }
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isRealHost, roomPlayers, code]);
 
   // ── Detect if this is a real Firestore room ───────────────────────────────
   useEffect(() => {

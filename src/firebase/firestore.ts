@@ -18,6 +18,7 @@ import {
   query,
   orderBy,
   Unsubscribe,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from './config';
 
@@ -154,7 +155,7 @@ export async function getRoomDoc(code: string): Promise<any | null> {
   }
 }
 
-export async function verifyRoom(code: string): Promise<{
+export async function verifyRoom(code: string, playerUid?: string): Promise<{
   valid: boolean;
   error?: 'not_found' | 'in_progress' | 'ended' | 'full';
   settings?: any;
@@ -169,13 +170,26 @@ export async function verifyRoom(code: string): Promise<{
     if (roomData.status === 'ended' || roomData.status === 'completed') {
       return { valid: false, error: 'ended' };
     }
-    if (roomData.status !== 'lobby') {
+
+    let isRejoining = false;
+    if (roomData.status === 'playing' && playerUid) {
+      const stateSnap = await getDoc(doc(db, 'rooms', code, 'gameState', 'current'));
+      if (stateSnap.exists()) {
+        const stateData = stateSnap.data();
+        if (stateData && Array.isArray(stateData.originalPlayers)) {
+          isRejoining = stateData.originalPlayers.includes(playerUid);
+        }
+      }
+    }
+
+    if (roomData.status !== 'lobby' && !isRejoining) {
       return { valid: false, error: 'in_progress' };
     }
+
     const playersSnap = await getDocs(collection(db, 'rooms', code, 'players'));
     const playersCount = playersSnap.size;
     const maxPlayers = roomData.settings?.maxPlayers || 10;
-    if (playersCount >= maxPlayers) {
+    if (!isRejoining && playersCount >= maxPlayers) {
       return { valid: false, error: 'full' };
     }
     return { valid: true, settings: roomData.settings };
@@ -234,11 +248,11 @@ export function subscribeRoom(code: string, callback: (data: any | null) => void
 
 export async function joinRoom(code: string, player: {
   uid: string; name: string; color: string; isHost: boolean;
-}): Promise<void> {
+}, score: number = 0): Promise<void> {
   if (!db) return;
   await setDoc(doc(db, 'rooms', code, 'players', player.uid), {
     ...player,
-    score: 0,
+    score,
     ready: player.isHost,
     isConnected: true,
     joinedAt: serverTimestamp(),
@@ -248,7 +262,13 @@ export async function joinRoom(code: string, player: {
 export async function updatePlayerConnection(code: string, uid: string, isConnected: boolean): Promise<void> {
   if (!db) return;
   try {
-    await updateDoc(doc(db, 'rooms', code, 'players', uid), { isConnected });
+    const updateData: any = { isConnected };
+    if (!isConnected) {
+      updateData.disconnectedAt = serverTimestamp();
+    } else {
+      updateData.disconnectedAt = deleteField();
+    }
+    await updateDoc(doc(db, 'rooms', code, 'players', uid), updateData);
   } catch (e) {
     // ignore
   }

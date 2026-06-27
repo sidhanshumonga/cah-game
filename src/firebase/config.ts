@@ -32,12 +32,21 @@ if (isFirebaseEnabled) {
       console.log('[Firebase] Connected to local Emulators');
     } else {
       if (typeof window !== 'undefined') {
-        isSupported().then((supported) => {
-          if (supported) {
-            analytics = getAnalytics(app);
-            console.log('[Firebase] Analytics initialized');
-          }
-        });
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1' || 
+                            window.location.hostname.startsWith('192.168.') || 
+                            window.location.hostname.endsWith('.local');
+        const isWebdriver = !!window.navigator.webdriver;
+        if (!isLocalhost && !isWebdriver) {
+          isSupported().then((supported) => {
+            if (supported) {
+              analytics = getAnalytics(app);
+              console.log('[Firebase] Analytics initialized');
+            }
+          });
+        } else {
+          console.log('[Firebase] Analytics disabled (localhost or automated runner)');
+        }
       }
     }
   } catch (error) {
