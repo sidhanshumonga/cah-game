@@ -114,13 +114,18 @@ export async function createCannyPost(params: {
   title: string;
   details: string;
   boardID: string;
+  categoryID?: string;
 }) {
-  return cannyRequest('/posts/create', {
+  const payload: any = {
     authorID: params.authorID,
     title: params.title,
     details: params.details,
     boardID: params.boardID,
-  });
+  };
+  if (params.categoryID) {
+    payload.categoryID = params.categoryID;
+  }
+  return cannyRequest('/posts/create', payload);
 }
 
 /**
@@ -153,11 +158,16 @@ export async function deleteCannyVote(params: {
  * Lists comments for a specific post.
  */
 export async function listCannyComments(params: {
-  postId: string;
+  postID?: string;
+  postId?: string;
   limit?: number;
   skip?: number;
 }) {
-  return cannyRequest('/comments/list', params);
+  const { postID, postId, ...rest } = params;
+  return cannyRequest('/comments/list', {
+    postID: postID || postId,
+    ...rest
+  });
 }
 
 /**

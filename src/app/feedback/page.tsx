@@ -316,7 +316,8 @@ export default function FeedbackPage() {
         },
         body: JSON.stringify({
           title: submitTitle.trim(),
-          details: submitDetails.trim() || "(no extra detail added)"
+          details: submitDetails.trim() || "(no extra detail added)",
+          type: submitType
         })
       });
 

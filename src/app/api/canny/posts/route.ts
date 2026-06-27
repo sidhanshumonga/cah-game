@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, details, boardId } = body;
+    const { title, details, boardId, type } = body;
 
     // Validate inputs
     if (!title || !details) {
@@ -104,12 +104,33 @@ export async function POST(req: Request) {
       avatarURL: decodedToken.picture || undefined,
     });
 
+    // Try to match category ID dynamically from board categories based on type
+    let categoryID: string | undefined = undefined;
+    if (type) {
+      try {
+        const { cannyRequest } = await import('@/utils/canny');
+        const boardData = await cannyRequest('/boards/retrieve', { id: targetBoardId });
+        if (boardData && Array.isArray(boardData.categories)) {
+          const matchedCategory = boardData.categories.find((cat: any) => 
+            cat.name?.toLowerCase().includes(type.toLowerCase())
+          );
+          if (matchedCategory) {
+            categoryID = matchedCategory.id;
+            console.log(`[Canny API] Mapped type '${type}' to category '${matchedCategory.name}' (${categoryID})`);
+          }
+        }
+      } catch (catErr) {
+        console.error('[Canny API] Failed to fetch board categories for mapping:', catErr);
+      }
+    }
+
     // 4. Submit the post to Canny using Canny user ID
     const createdPost = await createCannyPost({
       authorID: cannyUser.id,
       title,
       details,
       boardID: targetBoardId,
+      categoryID,
     });
 
     return NextResponse.json(createdPost);
