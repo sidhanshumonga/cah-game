@@ -820,6 +820,20 @@ function MultiplayerGame({ code }: { code: string }) {
     );
   }
 
+  if (showAbortFeedbackModal) {
+    return (
+      <div className="screen center-screen">
+        <FeedbackModal
+          open={showAbortFeedbackModal}
+          showReward={false}
+          code={code}
+          onClose={() => router.replace('/')}
+          onSubmitted={() => router.replace('/')}
+        />
+      </div>
+    );
+  }
+
   if (roomEndStatus !== 'none') {
     const isCompleted = roomEndStatus === 'completed';
     return (
@@ -1144,14 +1158,6 @@ function MultiplayerGame({ code }: { code: string }) {
         confirmVariant="danger"
         onConfirm={handleEndGame}
         onClose={() => setShowEndConfirm(false)}
-      />
-
-      <FeedbackModal
-        open={showAbortFeedbackModal}
-        showReward={false}
-        code={code}
-        onClose={() => router.replace('/')}
-        onSubmitted={() => router.replace('/')}
       />
     </div>
   );
