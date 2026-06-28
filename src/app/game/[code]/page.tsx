@@ -23,6 +23,7 @@ import { GAME_DATA } from '@/data/game-data';
 import { buildSeededDeck, getPromptForRound, seededShuffle } from '@/utils/deck';
 import { isFirebaseEnabled } from '@/firebase/config';
 import { Bot, X } from 'lucide-react';
+import FeedbackModal from '@/components/FeedbackModal';
 
 function shuffleArr<T>(a: T[]): T[] {
   const x = [...a];
@@ -149,6 +150,7 @@ function MultiplayerGame({ code }: { code: string }) {
   const hasTransitionedRef = useRef(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [showAbortFeedbackModal, setShowAbortFeedbackModal] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const lastMsgCountRef = useRef(0);
 
@@ -802,8 +804,9 @@ function MultiplayerGame({ code }: { code: string }) {
     if (!isHost) return;
     const { updateRoom } = await import('@/firebase/firestore');
     await updateRoom(code, { status: 'ended' });
-    router.replace('/');
-  }, [code, isHost, router]);
+    setShowEndConfirm(false);
+    setShowAbortFeedbackModal(true);
+  }, [code, isHost]);
 
   if (roomExists === false) {
     return (
@@ -1141,6 +1144,14 @@ function MultiplayerGame({ code }: { code: string }) {
         confirmVariant="danger"
         onConfirm={handleEndGame}
         onClose={() => setShowEndConfirm(false)}
+      />
+
+      <FeedbackModal
+        open={showAbortFeedbackModal}
+        showReward={false}
+        code={code}
+        onClose={() => router.replace('/')}
+        onSubmitted={() => router.replace('/')}
       />
     </div>
   );

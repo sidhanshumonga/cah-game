@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useGameContext } from '@/context/GameContext';
 import { Avatar, Coin, Btn, ConfettiBurst } from '@/components/components';
+import FeedbackModal from '@/components/FeedbackModal';
 
 export default function EndPage() {
   const router = useRouter();
@@ -16,6 +17,20 @@ export default function EndPage() {
       router.replace('/');
     }
   }, [isHydrated, endData, router]);
+
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!endData) return;
+    if (typeof window !== 'undefined' && window.navigator.webdriver) return;
+    const timer = setTimeout(() => {
+      if (!ratingSubmitted) {
+        setShowFeedbackModal(true);
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [endData, ratingSubmitted]);
 
   useEffect(() => {
     if (!isHydrated || !endData || !endData.code) return;
@@ -175,7 +190,7 @@ export default function EndPage() {
           ))}
         </div>
 
-        <RateRound />
+        {!ratingSubmitted && <RateRound onSubmitted={() => setRatingSubmitted(true)} />}
 
         <div className="end-actions">
           {isHost ? (
@@ -186,6 +201,13 @@ export default function EndPage() {
           <Btn big={true} variant="secondary" onClick={handleHome}>Back to start</Btn>
         </div>
       </div>
+      <FeedbackModal
+        open={showFeedbackModal}
+        showReward={true}
+        code={endData?.code || null}
+        onClose={() => setShowFeedbackModal(false)}
+        onSubmitted={() => setRatingSubmitted(true)}
+      />
     </div>
   );
 }
@@ -193,8 +215,12 @@ export default function EndPage() {
 // ─────────────────────────────────────────────────────────────────
 // END OF GAME RATING COMPONENT
 // ─────────────────────────────────────────────────────────────────
-function RateRound() {
-  const { endData, account } = useGameContext();
+interface RateRoundProps {
+  onSubmitted: () => void;
+}
+
+function RateRound({ onSubmitted }: RateRoundProps) {
+  const { endData, account, buyCredits } = useGameContext();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
@@ -250,12 +276,27 @@ function RateRound() {
       });
       if (response.ok) {
         setSent(true);
+        
+        // Award 5 coins for sharing feedback
+        if (account) {
+          try {
+            buyCredits({ coins: 5, tag: "Feedback bonus" });
+          } catch (creditsErr) {
+            console.error("Failed to credit feedback coins:", creditsErr);
+          }
+        }
+
         const { logAnalyticsEvent } = await import('@/firebase/config');
         logAnalyticsEvent('game_end_rating', {
           rating: rVal,
           reasons: reasonsVal.join(','),
-          code: endData?.code || null
+          code: endData?.code || null,
+          rewarded: true
         });
+
+        setTimeout(() => {
+          onSubmitted();
+        }, 2500);
       } else {
         console.error('Failed to submit end-of-game rating');
       }
@@ -288,6 +329,25 @@ function RateRound() {
   return (
     <div className="rate">
       <span className="rate-q">How was that game?</span>
+      
+      <div 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          background: 'rgba(255, 201, 60, 0.08)',
+          border: '1px solid rgba(255, 201, 60, 0.2)',
+          borderRadius: '8px',
+          padding: '6px 12px',
+          margin: '4px 0 10px',
+          fontSize: '12px',
+          fontWeight: 600,
+          color: 'var(--accent)'
+        }}
+      >
+        <Coin size={12} /> Earn 5 coins for sharing your thoughts!
+      </div>
+
       <div className="rate-stars" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
