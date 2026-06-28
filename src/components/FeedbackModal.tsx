@@ -124,7 +124,7 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
 
   return (
     <React.Fragment>
-      <div className="scrim scrim-open" style={{ zIndex: 150 }} onClick={onClose}></div>
+      <div className="scrim scrim-open" style={{ zIndex: 150 }} onClick={showReward ? onClose : undefined}></div>
       <div 
         role="dialog"
         aria-label="Feedback Modal"
@@ -141,7 +141,7 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
           width: '420px',
           maxWidth: '90vw',
           boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -149,17 +149,19 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
           textAlign: 'center'
         }}
       >
-        <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'flex-end', height: 0, overflow: 'visible' }}>
-          <button 
-            type="button" 
-            className="iconbtn" 
-            onClick={onClose} 
-            aria-label="Close"
-            style={{ margin: '-10px -10px 0 0', position: 'relative', zIndex: 10 }}
-          >
-            <X size={18} />
-          </button>
-        </div>
+        {showReward && (
+          <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'flex-end', height: 0, overflow: 'visible' }}>
+            <button 
+              type="button" 
+              className="iconbtn" 
+              onClick={onClose} 
+              aria-label="Close"
+              style={{ margin: '-10px -10px 0 0', position: 'relative', zIndex: 10 }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
 
         {sent ? (
           <div className="rate-done" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
@@ -178,7 +180,15 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-            <span className="rate-q" style={{ fontSize: '20px', marginBottom: '4px' }}>How was that game?</span>
+            <span className="rate-q" style={{ fontSize: '20px', marginBottom: '4px', fontWeight: 800 }}>
+              {showReward ? "How was that game?" : "What went wrong?"}
+            </span>
+
+            {!showReward && (
+              <p style={{ fontSize: '13px', opacity: 0.75, margin: '4px 0 12px', lineHeight: 1.45 }}>
+                We're sorry to see you end the game early. Tell us how we can improve!
+              </p>
+            )}
             
             {showReward && (
               <div 
@@ -226,7 +236,14 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
                   {rating <= 2 ? "What went wrong?" : rating === 3 ? "How can we improve?" : "What did you love?"}
                 </span>
                 
-                <div className="rate-chips" style={{ width: '100%' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '8px',
+                  width: '100%',
+                  maxWidth: '360px',
+                  margin: '12px 0 16px'
+                }}>
                   {getOptionsForRating(rating).map((opt) => {
                     const isSelected = selectedReasons.includes(opt);
                     return (
@@ -235,6 +252,17 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
                         type="button"
                         className={`rate-chip ${isSelected ? 'rate-chip-selected' : ''}`}
                         onClick={() => toggleReason(opt)}
+                        style={{
+                          margin: 0,
+                          padding: '6px 8px',
+                          fontSize: '11px',
+                          textAlign: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          height: '38px',
+                          borderRadius: '16px'
+                        }}
                       >
                         {opt}
                       </button>
@@ -243,12 +271,13 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'center', marginTop: '10px' }}>
-                  <Btn variant="secondary" onClick={onClose} disabled={submitting}>Skip</Btn>
+                  {showReward && <Btn variant="secondary" onClick={onClose} disabled={submitting}>Skip</Btn>}
                   <button
                     type="button"
                     className="rate-submit-btn"
                     disabled={selectedReasons.length === 0 || submitting}
                     onClick={handleSubmit}
+                    style={{ flex: showReward ? 'none' : 1, maxWidth: showReward ? 'none' : '220px' }}
                   >
                     {submitting ? "Submitting..." : "Submit"}
                   </button>
@@ -256,7 +285,7 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
               </div>
             )}
             
-            {rating === 0 && (
+            {rating === 0 && showReward && (
               <div style={{ marginTop: '20px' }}>
                 <Btn variant="ghost" onClick={onClose}>Skip / Close</Btn>
               </div>

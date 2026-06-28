@@ -1207,32 +1207,33 @@ function ConfirmModal({ open, title, desc, confirmText, cancelText, confirmVaria
         left: '50%',
         transform: 'translate(-50%, -50%)',
         zIndex: 111,
-        background: 'var(--paper)',
-        color: 'var(--paper-fg)',
+        background: '#18181b',
+        color: 'var(--fg)',
         borderRadius: '24px',
         padding: '30px 32px',
         width: '400px',
         maxWidth: '90vw',
-        boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
-        border: '1px solid rgba(0,0,0,0.08)',
+        boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
+        border: '1px solid rgba(255,255,255,0.08)',
         display: 'flex',
         flexDirection: 'column',
         gap: '12px'
       }}>
         <h3 style={{ fontFamily: 'var(--font-d)', fontSize: '22px', fontWeight: 800, margin: 0 }}>{title}</h3>
-        <p style={{ fontSize: '14px', opacity: 0.7, lineHeight: 1.4, margin: '4px 0 16px' }}>{desc}</p>
+        <p style={{ fontSize: '14px', opacity: 0.75, lineHeight: 1.4, margin: '4px 0 16px' }}>{desc}</p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
           <Btn variant="secondary" onClick={onClose}>{cancelText || "Cancel"}</Btn>
           <button 
             className="btn"
             style={{
-              background: confirmVariant === "danger" ? "#ff4d4f" : "var(--dark)",
-              color: "#fff",
+              background: confirmVariant === "danger" ? "#ff4d4f" : "var(--accent)",
+              color: confirmVariant === "danger" ? "#fff" : "var(--dark)",
               border: 0,
               padding: '10px 20px',
               borderRadius: '999px',
               fontWeight: 700,
-              fontFamily: 'var(--font-d)'
+              fontFamily: 'var(--font-d)',
+              cursor: 'pointer'
             }}
             onClick={onConfirm}
           >
