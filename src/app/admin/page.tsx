@@ -1072,12 +1072,17 @@ export default function AdminPage() {
                           <span className="catalog-item-name">{p.name}</span>
                           <span className="custom-badge" style={{background:'rgba(44,196,190,0.15)',color:'#2BC4BE'}}>Firestore</span>
                         </div>
-                        <div className="catalog-item-meta">
+                        <div className="catalog-item-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span className="catalog-item-cards">{p.cards} cards</span>
                           {p.free ? (
                             <span className="catalog-item-price">Free</span>
                           ) : (
                             <span className="catalog-item-price"><Coin size={10} /> {p.price}</span>
+                          )}
+                          {p.familyFriendly === false ? (
+                            <span className="custom-badge" style={{background:'rgba(255,77,79,0.15)',color:'#FF4D4F',fontSize:'10.5px',padding:'2px 7px',borderRadius:'6px'}}>Adult</span>
+                          ) : (
+                            <span className="custom-badge" style={{background:'rgba(200,240,81,0.15)',color:'var(--accent)',fontSize:'10.5px',padding:'2px 7px',borderRadius:'6px'}}>Family-Friendly</span>
                           )}
                         </div>
                       </div>
