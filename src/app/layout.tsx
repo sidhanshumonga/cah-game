@@ -68,16 +68,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${bricolage.variable} ${schibsted.variable}`}>
       <head>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-3B6QG0SKDG"
-          strategy="afterInteractive"
-        />
         <Script id="google-analytics" strategy="afterInteractive">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-3B6QG0SKDG');
+            var isLocal = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1' || 
+                          window.location.hostname.startsWith('192.168.') || 
+                          window.location.hostname.endsWith('.local') ||
+                          navigator.webdriver;
+            if (!isLocal) {
+              var script = document.createElement('script');
+              script.async = true;
+              script.src = 'https://www.googletagmanager.com/gtag/js?id=G-3B6QG0SKDG';
+              document.head.appendChild(script);
+
+              window.dataLayer = window.dataLayer || [];
+              window.gtag = function(){window.dataLayer.push(arguments);}
+              window.gtag('js', new Date());
+              window.gtag('config', 'G-3B6QG0SKDG');
+            } else {
+              console.log('[Analytics] Blocked tracking for local/automated runner');
+            }
           `}
         </Script>
       </head>
