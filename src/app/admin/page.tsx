@@ -232,9 +232,20 @@ export default function AdminPage() {
 
   const filteredUsers = useMemo(() => {
     if (!Array.isArray(users)) return [];
-    if (!searchQuery.trim()) return users;
+
+    const sortedUsers = [...users].sort((a, b) => {
+      const aTime = a.createdAt
+        ? (typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : (a.createdAt.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime()))
+        : 0;
+      const bTime = b.createdAt
+        ? (typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : (b.createdAt.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime()))
+        : 0;
+      return bTime - aTime;
+    });
+
+    if (!searchQuery.trim()) return sortedUsers;
     const q = searchQuery.toLowerCase().trim();
-    return users.filter(u => {
+    return sortedUsers.filter(u => {
       if (!u) return false;
       const email = u.email && typeof u.email === 'string' ? u.email.toLowerCase() : "";
       const name = u.name && typeof u.name === 'string' ? u.name.toLowerCase() : "";
