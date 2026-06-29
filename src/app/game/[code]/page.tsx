@@ -162,17 +162,27 @@ function MultiplayerGame({ code }: { code: string }) {
   const checkHandScroll = useCallback(() => {
     const el = handRef.current;
     if (!el) return;
-    setShowLeftArrow(el.scrollLeft > 10);
-    setShowRightArrow(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+    requestAnimationFrame(() => {
+      setShowLeftArrow(el.scrollLeft > 10);
+      setShowRightArrow(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+    });
   }, []);
 
   useEffect(() => {
     const el = handRef.current;
     if (!el) return;
-    checkHandScroll();
+    
+    // Reset scroll positions at start of a round
+    el.scrollLeft = 0;
+    
+    const timer = setTimeout(() => {
+      checkHandScroll();
+    }, 120);
+
     el.addEventListener('scroll', checkHandScroll);
     window.addEventListener('resize', checkHandScroll);
     return () => {
+      clearTimeout(timer);
       el.removeEventListener('scroll', checkHandScroll);
       window.removeEventListener('resize', checkHandScroll);
     };
@@ -940,11 +950,13 @@ function MultiplayerGame({ code }: { code: string }) {
                       </button>
                     )}
                     <div className="hand" ref={handRef}>
+                      <div className="hand-spacer" />
                       {hand.map((c, i) => (
                         <div key={c + i} className="hand-slot" style={{ "--rot": (i - mid) * 4 + "deg", "--ty": Math.abs(i - mid) * 9 + "px", "--dl": i * 70 + "ms" } as React.CSSProperties}>
                           <AnswerCard text={c} selected={!swapMode && myPick === c} className={swapMode && swapPicks.includes(i) ? "acard-swapsel" : ""} onClick={() => (swapMode ? toggleSwapPick(i) : setMyPick(myPick === c ? null : c))} />
                         </div>
                       ))}
+                      <div className="hand-spacer" />
                     </div>
                     {showRightArrow && (
                       <button 
@@ -1034,9 +1046,11 @@ function MultiplayerGame({ code }: { code: string }) {
                 </h2>
               </div>
               <div className="judge-grid">
+                <div className="hand-spacer" />
                 {subs.map((s: any, i: number) => (
                   <FlipCard key={s.uid} text={s.text} flipped={flipped} delay={i * 0.42 + "s"} clickable={youAreJudge && flipped} onClick={() => handleCrown(s.uid)} />
                 ))}
+                <div className="hand-spacer" />
               </div>
               {youAreJudge ? <p className="judging-hint">Answers are anonymous — tap a card to crown the winner</p> : null}
             </main>
@@ -1065,6 +1079,7 @@ function MultiplayerGame({ code }: { code: string }) {
               ) : null}
               <PromptCard text={prompt} fill={winnerSub ? winnerSub.text : ""} className="reveal-prompt" />
               <div className="reveal-others">
+                <div className="hand-spacer" />
                 {subs.map((s: any) => {
                   const isWinner = s.uid === gameState?.winnerUid;
                   const submitter = roomPlayers.find(p => p.uid === s.uid) || { name: s.name, color: '#ccc' };
@@ -1085,6 +1100,7 @@ function MultiplayerGame({ code }: { code: string }) {
                     </div>
                   );
                 })}
+                <div className="hand-spacer" />
               </div>
               <div className="reveal-foot">
                 <ReactionBar onReact={handleSendReaction} />
