@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGameContext, maxPlayersFor, ownsPack, sortPacks, isUserIndian } from '@/context/GameContext';
+import { useGameContext, maxPlayersFor, ownsPack, sortPacks, isUserIndian, isIndianPack } from '@/context/GameContext';
 import { Logo, Coin, LockIcon, Btn } from '@/components/components';
 import { GAME_DATA } from '@/data/game-data';
 import { Bot, ChevronLeft } from 'lucide-react';
@@ -69,6 +69,7 @@ export default function CreateRoomPage() {
   const [packQuery, setPackQuery] = useState("");
   const [lockedHint, setLockedHint] = useState<any>(null);
   const [familyNotice, setFamilyNotice] = useState<string | null>(null);
+  const [packNotice, setPackNotice] = useState<string | null>(null);
 
   // Bots state
   const hasBotOverlord = !!(account && account.upgrades.includes("botOverlord"));
@@ -111,17 +112,66 @@ export default function CreateRoomPage() {
   });
 
   const togglePack = (pId: string) => {
+    setPackNotice(null);
     setPacks((s) => {
-      if (s.includes(pId)) return s.filter((x) => x !== pId);
-      if (s.length >= MAX_PACKS) return s;
+      const isCurrentlySelected = s.includes(pId);
+      
+      if (!isCurrentlySelected) {
+        if (s.length >= MAX_PACKS) return s;
+        
+        // If selecting an Indian pack, ensure Classic is not selected
+        const clickedPack = allPacks.find(p => p.id === pId);
+        if (clickedPack && isIndianPack(clickedPack)) {
+          if (s.includes("classic")) {
+            setPackNotice("Deselected the 'Classic' pack because it is in English, while Indian packs are in Hinglish (mixing them can make the experience bad).");
+            return [...s.filter(x => x !== "classic"), pId];
+          }
+        }
+        
+        // If selecting the Classic pack, ensure Indian packs are not selected
+        if (pId === "classic") {
+          const hasIndianSelected = s.some(id => {
+            const p = allPacks.find(x => x.id === id);
+            return p && isIndianPack(p);
+          });
+          if (hasIndianSelected) {
+            setPackNotice("Deselected Indian packs because they are in Hinglish, while the 'Classic' pack is in English (mixing them can make the experience bad).");
+            const nonIndianSelected = s.filter(id => {
+              const p = allPacks.find(x => x.id === id);
+              return !(p && isIndianPack(p));
+            });
+            return [...nonIndianSelected, "classic"];
+          }
+        }
+      }
+      
+      if (isCurrentlySelected) return s.filter((x) => x !== pId);
       return [...s, pId];
     });
   };
 
   const randomPacks = () => {
+    setPackNotice(null);
     const owned = allPacks.filter((p) => ownsPack(account, p));
     const shuffled = [...owned].sort(() => Math.random() - 0.5);
-    setPacks(shuffled.slice(0, 3).map((p) => p.id));
+    
+    const selected: string[] = [];
+    for (const p of shuffled) {
+      if (selected.length >= 3) break;
+      
+      // Prevent mix of Classic and Indian packs
+      if (selected.includes("classic") && isIndianPack(p)) continue;
+      
+      const hasIndian = selected.some(id => {
+        const x = allPacks.find(item => item.id === id);
+        return x && isIndianPack(x);
+      });
+      if (hasIndian && p.id === "classic") continue;
+      
+      selected.push(p.id);
+    }
+    
+    setPacks(selected);
   };
 
   const handleBack = () => {
@@ -143,9 +193,19 @@ export default function CreateRoomPage() {
         price: buyConfirmPack.price || 0
       });
       
+      setPackNotice(null);
       setPacks((prev) => {
         if (prev.includes(buyConfirmPack.id)) return prev;
         if (prev.length >= MAX_PACKS) return prev;
+        
+        // Prevent mix of Classic and Indian packs on instant buy
+        if (isIndianPack(buyConfirmPack)) {
+          if (prev.includes("classic")) {
+            setPackNotice("Deselected the 'Classic' pack because it is in English, while Indian packs are in Hinglish (mixing them can make the experience bad).");
+            return [...prev.filter(x => x !== "classic"), buyConfirmPack.id];
+          }
+        }
+        
         return [...prev, buyConfirmPack.id];
       });
       
@@ -301,6 +361,24 @@ export default function CreateRoomPage() {
           <section className="create-col">
             <h3 className="create-sec">Card packs <span className="flabel-val">{packs.length} selected</span></h3>
             <div className="packbox">
+              {packNotice && (
+                <div 
+                  style={{
+                    background: 'rgba(255, 201, 60, 0.08)',
+                    border: '1px solid rgba(255, 201, 60, 0.2)',
+                    borderRadius: '12px',
+                    padding: '8px 12px',
+                    margin: '0 0 10px',
+                    fontSize: '12.5px',
+                    color: 'var(--accent)',
+                    textAlign: 'left',
+                    lineHeight: 1.4,
+                    animation: 'fadeIn 0.2s ease'
+                  }}
+                >
+                  ⚠️ {packNotice}
+                </div>
+              )}
               <div className="packbox-tools">
                 <input
                   className="input packsearch"
