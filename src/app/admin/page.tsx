@@ -988,6 +988,7 @@ export default function AdminPage() {
 
             </div>
           </div>
+        ) : (
           <div className="admin-grid">
             {/* Column 1: JSON Editor & Catalog Status */}
             <div className="admin-col-left" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
