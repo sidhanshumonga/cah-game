@@ -235,6 +235,15 @@ export async function resetRoomForReplay(code: string, hostUid: string): Promise
   }
 }
 
+export async function deleteRoom(code: string): Promise<void> {
+  if (!db) return;
+  try {
+    await deleteDoc(doc(db, 'rooms', code));
+  } catch (e) {
+    console.error('deleteRoom failed', e);
+  }
+}
+
 export function subscribeRoom(code: string, callback: (data: any | null) => void): Unsubscribe {
   if (!db) return () => {};
   return onSnapshot(doc(db, 'rooms', code), (snap) => {

@@ -450,6 +450,18 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteRoom = async (code: string) => {
+    if (!confirm(`Are you sure you want to delete room session "${code}"? All active state for this game will be wiped.`)) return;
+    try {
+      const { deleteRoom } = await import('@/firebase/firestore');
+      await deleteRoom(code);
+      alert(`Room session "${code}" successfully deleted.`);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to delete room: ${err.message}`);
+    }
+  };
+
   const handleSignOut = () => {
     logout();
     router.push('/');
@@ -633,10 +645,10 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Two-Column Grid: Transactions (Left) & Players List (Right) */}
-            <div className="analytics-grid">
+            {/* Stacked Layout: Transactions, Players Directory, User Feedback (Full Width) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', width: '100%' }}>
               
-              {/* Column 1: Recent Transactions */}
+              {/* Detailed Transaction History (Full Width) */}
               <section className="analytics-table-card" style={{ marginBottom: 0 }}>
                 <div className="table-header-row">
                   <h3 className="table-title">Transaction History ({processedTransactions.length})</h3>
@@ -646,9 +658,10 @@ export default function AdminPage() {
                   <table className="premium-table">
                     <thead>
                       <tr>
-                        <th>Date</th>
+                        <th>Date & Time</th>
                         <th>User Email</th>
-                        <th>Type</th>
+                        <th>User UID</th>
+                        <th>Transaction Type</th>
                         <th>Item Description</th>
                         <th>Price/Cost</th>
                       </tr>
@@ -656,7 +669,7 @@ export default function AdminPage() {
                     <tbody>
                       {processedTransactions.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                          <td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
                             No transaction records matched the filters.
                           </td>
                         </tr>
@@ -672,24 +685,27 @@ export default function AdminPage() {
                           return (
                             <tr key={p.id || idx}>
                               <td style={{ opacity: 0.8, fontSize: '12.5px' }}>{dateStr}</td>
-                              <td style={{ fontWeight: 500 }}>
-                                <span title={p.userId}>{p.userEmail || "anonymous"}</span>
-                              </td>
+                              <td style={{ fontWeight: 600 }}>{p.userEmail || "anonymous"}</td>
+                              <td style={{ fontFamily: 'monospace', opacity: 0.5, fontSize: '11px' }}>{p.userId || "—"}</td>
                               <td>
-                                <span className={p.type === 'top-up' ? 'badge-top-up' : 'badge-spend'}>
-                                  {p.type === 'top-up' ? 'Top-up' : 'Spend'}
-                                </span>
-                              </td>
-                              <td style={{ fontWeight: 600 }}>{p.itemName || "Unnamed Item"}</td>
-                              <td style={{ fontWeight: 700 }}>
-                                {p.currency === 'coins' ? (
-                                  <span style={{ color: '#FFC93C' }}>{p.cost} coins</span>
-                                ) : p.currency?.toUpperCase() === 'USD' ? (
-                                  <span style={{ color: '#2BC4BE' }}>${p.cost.toFixed(2)}</span>
-                                ) : p.currency?.toUpperCase() === 'GBP' ? (
-                                  <span style={{ color: '#A855F7' }}>£{p.cost.toFixed(2)}</span>
+                                {p.type === 'top-up' ? (
+                                  <span className="custom-badge" style={{ background: 'rgba(43,196,190,0.15)', color: '#2bc4be', fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 600 }}>TOP-UP</span>
                                 ) : (
-                                  <span style={{ color: '#00D2FF' }}>₹{p.cost.toFixed(0)}</span>
+                                  <span className="custom-badge" style={{ background: 'rgba(255,92,60,0.12)', color: '#ff5c3c', fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 600 }}>SPEND</span>
+                                )}
+                              </td>
+                              <td style={{ fontWeight: 700 }}>{p.itemName || "Unnamed Item"}</td>
+                              <td style={{ fontWeight: 800 }}>
+                                {p.currency === 'coins' ? (
+                                  <span style={{ color: '#FFC93C', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <Coin size={12} /> {p.cost} coins
+                                  </span>
+                                ) : p.currency?.toUpperCase() === 'USD' ? (
+                                  <span style={{ color: '#2BC4BE' }}>${p.cost.toFixed(2)} USD</span>
+                                ) : p.currency?.toUpperCase() === 'GBP' ? (
+                                  <span style={{ color: '#A855F7' }}>£{p.cost.toFixed(2)} GBP</span>
+                                ) : (
+                                  <span style={{ color: '#00D2FF' }}>₹{p.cost.toFixed(0)} INR</span>
                                 )}
                               </td>
                             </tr>
@@ -700,123 +716,118 @@ export default function AdminPage() {
                   </table>
                 </div>
               </section>
-
-              {/* Column 2: Players Directory & User Feedbacks */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 
-                {/* Registered Players Card */}
-                <section className="analytics-table-card" style={{ marginBottom: 0 }}>
-                  <div className="table-header-row">
-                    <h3 className="table-title">Registered Players ({filteredUsers.length})</h3>
-                  </div>
+              {/* Registered Players Card (Full Width) */}
+              <section className="analytics-table-card" style={{ marginBottom: 0 }}>
+                <div className="table-header-row">
+                  <h3 className="table-title">Registered Players ({filteredUsers.length})</h3>
+                </div>
 
-                  <div className="premium-table-wrap" style={{ maxHeight: '350px' }}>
-                    {filteredUsers.length === 0 ? (
-                      <p className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
-                        No registered players found.
-                      </p>
-                    ) : (
-                      filteredUsers.map((u, idx) => {
-                        const firstLetter = u.name ? u.name.charAt(0) : (u.email ? u.email.charAt(0) : '?');
-                        const userRole = u.admin ? 'Admin' : (u.guest ? 'Guest' : 'Player');
-                        const roleClass = u.admin ? 'badge-admin' : (u.guest ? 'badge-guest' : 'badge-player');
-                        
+                <div className="premium-table-wrap" style={{ maxHeight: '350px' }}>
+                  {filteredUsers.length === 0 ? (
+                    <p className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                      No registered players found.
+                    </p>
+                  ) : (
+                    filteredUsers.map((u, idx) => {
+                      const firstLetter = u.name ? u.name.charAt(0) : (u.email ? u.email.charAt(0) : '?');
+                      const userRole = u.admin ? 'Admin' : (u.guest ? 'Guest' : 'Player');
+                      const roleClass = u.admin ? 'badge-admin' : (u.guest ? 'badge-guest' : 'badge-player');
+                      
+                      return (
+                        <div key={u.uid || idx} className="player-user-row">
+                          <div 
+                            className="player-avatar" 
+                            style={{ background: u.color || '#5c6bc0' }}
+                          >
+                            {firstLetter}
+                          </div>
+                          
+                          <div className="player-info">
+                            <div className="player-name">
+                              <span>{u.name || "Anonymous User"}</span>
+                              <span className={roleClass}>{userRole}</span>
+                            </div>
+                            <div className="player-email" title={u.uid}>{u.email || "No email address"}</div>
+                          </div>
+                          
+                          <div className="player-meta">
+                            <span className="player-coins">{u.credits ?? 0} coins</span>
+                            <span className="player-games">{u.games ?? 0} games</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+
+              {/* User Feedback Card (Full Width) */}
+              <section className="analytics-table-card" style={{ marginBottom: 0 }}>
+                <div className="table-header-row">
+                  <h3 className="table-title">User Feedback Ratings ({feedbacks.length})</h3>
+                </div>
+
+                <div className="premium-table-wrap" style={{ maxHeight: '350px' }}>
+                  {feedbacks.length === 0 ? (
+                    <p className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                      No user feedback reports submitted yet.
+                    </p>
+                  ) : (
+                    [...feedbacks]
+                      .sort((a, b) => {
+                        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                        return bTime - aTime;
+                      })
+                      .map((f, idx) => {
+                        const stars = "★".repeat(f.rating || 0) + "☆".repeat(5 - (f.rating || 0));
+                        const isLow = f.rating !== undefined && f.rating <= 2;
                         return (
-                          <div key={u.uid || idx} className="player-user-row">
-                            <div 
-                              className="player-avatar" 
-                              style={{ background: u.color || '#5c6bc0' }}
-                            >
-                              {firstLetter}
+                          <div key={f.id || idx} className="player-user-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                              <span style={{ color: isLow ? '#ff5c3c' : '#FFC93C', fontWeight: 800, letterSpacing: '2px', fontSize: '13px' }}>
+                                {stars}
+                              </span>
+                              {f.createdAt && (
+                                <span style={{ fontSize: '11px', opacity: 0.5 }}>
+                                  {new Date(f.createdAt).toLocaleDateString()} {new Date(f.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
                             </div>
-                            
-                            <div className="player-info">
-                              <div className="player-name">
-                                <span>{u.name || "Anonymous User"}</span>
-                                <span className={roleClass}>{userRole}</span>
+                            {f.comment && (
+                              <p style={{ margin: '4px 0 0', fontSize: '13px', lineHeight: 1.45, color: '#e0e0e0', textWrap: 'pretty' }}>
+                                "{f.comment}"
+                              </p>
+                            )}
+                            {f.reasons && Array.isArray(f.reasons) && f.reasons.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                                {f.reasons.map((reason: string, rIdx: number) => (
+                                  <span key={rIdx} style={{
+                                    fontSize: '11px',
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    color: 'rgba(255, 255, 255, 0.85)',
+                                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                                    fontWeight: 600
+                                  }}>
+                                    {reason}
+                                  </span>
+                                ))}
                               </div>
-                              <div className="player-email" title={u.uid}>{u.email || "No email address"}</div>
-                            </div>
-                            
-                            <div className="player-meta">
-                              <span className="player-coins">{u.credits ?? 0} coins</span>
-                              <span className="player-games">{u.games ?? 0} games</span>
-                            </div>
+                            )}
+                            {f.email && (
+                              <span style={{ fontSize: '11px', opacity: 0.4, marginTop: '4px' }}>
+                                By: {f.email}
+                              </span>
+                            )}
                           </div>
                         );
                       })
-                    )}
-                  </div>
-                </section>
-
-                {/* User Feedback Card */}
-                <section className="analytics-table-card" style={{ marginBottom: 0 }}>
-                  <div className="table-header-row">
-                    <h3 className="table-title">User Feedback Ratings ({feedbacks.length})</h3>
-                  </div>
-
-                  <div className="premium-table-wrap" style={{ maxHeight: '350px' }}>
-                    {feedbacks.length === 0 ? (
-                      <p className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
-                        No user feedback reports submitted yet.
-                      </p>
-                    ) : (
-                      [...feedbacks]
-                        .sort((a, b) => {
-                          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                          return bTime - aTime;
-                        })
-                        .map((f, idx) => {
-                          const stars = "★".repeat(f.rating || 0) + "☆".repeat(5 - (f.rating || 0));
-                          const isLow = f.rating !== undefined && f.rating <= 2;
-                          return (
-                            <div key={f.id || idx} className="player-user-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                <span style={{ color: isLow ? '#ff5c3c' : '#FFC93C', fontWeight: 800, letterSpacing: '2px', fontSize: '13px' }}>
-                                  {stars}
-                                </span>
-                                {f.createdAt && (
-                                  <span style={{ fontSize: '11px', opacity: 0.5 }}>
-                                    {new Date(f.createdAt).toLocaleDateString()} {new Date(f.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
-                                )}
-                              </div>
-                              {f.comment && (
-                                <p style={{ margin: '4px 0 0', fontSize: '13px', lineHeight: 1.45, color: '#e0e0e0', textWrap: 'pretty' }}>
-                                  "{f.comment}"
-                                </p>
-                              )}
-                              {f.reasons && Array.isArray(f.reasons) && f.reasons.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                                  {f.reasons.map((reason: string, rIdx: number) => (
-                                    <span key={rIdx} style={{
-                                      fontSize: '11px',
-                                      padding: '2px 8px',
-                                      borderRadius: '12px',
-                                      background: 'rgba(255, 255, 255, 0.08)',
-                                      color: 'rgba(255, 255, 255, 0.85)',
-                                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                                      fontWeight: 600
-                                    }}>
-                                      {reason}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                              {f.email && (
-                                <span style={{ fontSize: '11px', opacity: 0.4, marginTop: '4px' }}>
-                                  By: {f.email}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })
-                    )}
-                  </div>
-                </section>
-
-              </div>
+                  )}
+                </div>
+              </section>
 
             </div>
           </div>
@@ -853,10 +864,10 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Room Analytics Grid */}
-            <div className="analytics-grid">
+            {/* Room Analytics stacked full-width */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', width: '100%' }}>
               
-              {/* Column 1: Detailed Room Sessions Log */}
+              {/* Detailed Room Sessions Log (Full Width) */}
               <section className="analytics-table-card" style={{ marginBottom: 0 }}>
                 <div className="table-header-row">
                   <h3 className="table-title">Active & Historic Room Sessions ({rooms.length})</h3>
@@ -870,14 +881,15 @@ export default function AdminPage() {
                         <th>Host Name</th>
                         <th>Created Date</th>
                         <th>Status</th>
-                        <th>Details (Max Players / Timer)</th>
+                        <th>Game Configuration</th>
                         <th>Packs Selected</th>
+                        <th style={{ textAlign: 'right' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rooms.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
+                          <td colSpan={7} className="muted" style={{ textAlign: 'center', padding: '32px 0' }}>
                             No game rooms created in the database yet.
                           </td>
                         </tr>
@@ -897,14 +909,25 @@ export default function AdminPage() {
                               dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                             }
                             
-                            let badgeClass = 'badge-guest';
-                            if (r.status === 'playing') badgeClass = 'badge-player';
-                            if (r.status === 'completed') badgeClass = 'badge-top-up';
-                            if (r.status === 'ended') badgeClass = 'badge-spend';
-                            
                             const isAbandoned = r.status === 'lobby' && 
                               r.createdAt && 
                               (typeof r.createdAt.toMillis === 'function' ? r.createdAt.toMillis() : (r.createdAt.seconds || 0) * 1000) < Date.now() - 3600000;
+
+                            let badgeStyle = { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 600, display: 'inline-block' };
+                            if (r.status === 'playing') {
+                              badgeStyle = { background: 'rgba(0,210,255,0.15)', color: '#00d2ff', fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 600, display: 'inline-block' };
+                            } else if (r.status === 'completed') {
+                              badgeStyle = { background: 'rgba(43,196,190,0.15)', color: '#2bc4be', fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 600, display: 'inline-block' };
+                            } else if (r.status === 'ended') {
+                              badgeStyle = { background: 'rgba(255,77,79,0.15)', color: '#ff4d4f', fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 600, display: 'inline-block' };
+                            } else if (r.status === 'lobby') {
+                              badgeStyle = { background: 'rgba(255,201,60,0.15)', color: 'var(--accent)', fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 600, display: 'inline-block' };
+                            }
+                            if (isAbandoned) {
+                              badgeStyle = { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 600, display: 'inline-block' };
+                            }
+
+                            const packIds = r.settings && Array.isArray(r.settings.packs) ? r.settings.packs : [];
                               
                             return (
                               <tr key={r.code || idx}>
@@ -912,46 +935,66 @@ export default function AdminPage() {
                                 <td style={{ fontWeight: 600 }}>{r.hostName || 'Anonymous'}</td>
                                 <td style={{ opacity: 0.7, fontSize: '12.5px' }}>{dateStr}</td>
                                 <td>
-                                  {isAbandoned ? (
-                                    <span className="badge-spend">Abandoned</span>
-                                  ) : (
-                                    <span className={badgeClass}>{r.status}</span>
-                                  )}
+                                  <span style={badgeStyle}>
+                                    {isAbandoned ? "Abandoned" : r.status.toUpperCase()}
+                                  </span>
                                 </td>
                                 <td>
                                   {r.settings ? (
-                                    <span style={{ fontSize: '12.5px' }}>
-                                      👤 Max: {r.settings.maxPlayers || 8} | ⏱️ {r.settings.timer || 30}s
-                                    </span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                      <span style={{ fontWeight: 600, fontSize: '13px' }}>👤 Max: {r.settings.maxPlayers || 8} players</span>
+                                      <span style={{ opacity: 0.6, fontSize: '11px' }}>⏱️ Timer: {r.settings.timer || 30}s | 🎯 Limit: {r.settings.scoreLimit || 5} pts</span>
+                                    </div>
                                   ) : (
                                     <span className="muted">—</span>
                                   )}
                                 </td>
                                 <td>
-                                  {r.settings && Array.isArray(r.settings.packs) ? (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                      {r.settings.packs.map((pId: string) => {
-                                        const pName = (packs || []).find(pk => pk.id === pId)?.name || pId;
-                                        return (
-                                          <span 
-                                            key={pId} 
-                                            className="custom-badge" 
-                                            style={{ 
-                                              background: 'rgba(255,255,255,0.06)', 
-                                              color: 'rgba(255,255,255,0.7)',
-                                              fontSize: '10px',
-                                              padding: '1px 5px',
-                                              borderRadius: '3px'
-                                            }}
-                                          >
-                                            {pName}
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <span className="muted">None</span>
-                                  )}
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--accent)' }}>{packIds.length} pack{packIds.length === 1 ? '' : 's'} selected</span>
+                                    {packIds.length > 0 && (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '360px' }}>
+                                        {packIds.map((pId: string) => {
+                                          const pName = (packs || []).find(pk => pk.id === pId)?.name || pId;
+                                          return (
+                                            <span 
+                                              key={pId} 
+                                              className="custom-badge" 
+                                              style={{ 
+                                                background: 'rgba(255,255,255,0.05)', 
+                                                color: 'rgba(255,255,255,0.6)',
+                                                fontSize: '9.5px',
+                                                padding: '2px 6px',
+                                                borderRadius: '4px',
+                                                border: '1px solid rgba(255,255,255,0.04)'
+                                              }}
+                                            >
+                                              {pName}
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <button
+                                    className="action-btn action-delete"
+                                    onClick={() => handleDeleteRoom(r.code)}
+                                    style={{
+                                      background: 'rgba(255, 77, 79, 0.1)',
+                                      color: '#ff4d4f',
+                                      border: '1px solid rgba(255, 77, 79, 0.2)',
+                                      borderRadius: '6px',
+                                      padding: '4px 10px',
+                                      fontSize: '12px',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s'
+                                    }}
+                                  >
+                                    Wipe
+                                  </button>
                                 </td>
                               </tr>
                             );
@@ -962,7 +1005,7 @@ export default function AdminPage() {
                 </div>
               </section>
 
-              {/* Column 2: Package Popularity Ranking */}
+              {/* Column 2: Package Popularity Ranking (Full Width) */}
               <section className="analytics-table-card" style={{ marginBottom: 0 }}>
                 <div className="table-header-row">
                   <h3 className="table-title">Most Popular Packs in Rooms</h3>
