@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameContext } from '@/context/GameContext';
 import { Logo, Btn, Avatar, Coin, PromptCard, AnswerCard } from '@/components/components';
+import { HumProvider, MinimalPill } from '@humlabs/react';
 
 const DEMO_POOL = [
   { prompt: "My secret talent is ____.", answer: "Making every situation slightly worse." },
@@ -327,6 +328,13 @@ export default function LandingPage() {
             <span>·</span>
             <button className="linkbtn" onClick={() => router.push('/privacy')}>Privacy Policy</button>
           </div>
+          {process.env.NEXT_PUBLIC_HUMLABS_SITE_ID && (
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <HumProvider siteId={process.env.NEXT_PUBLIC_HUMLABS_SITE_ID}>
+                <MinimalPill />
+              </HumProvider>
+            </div>
+          )}
         </footer>
       </div>
     </div>
