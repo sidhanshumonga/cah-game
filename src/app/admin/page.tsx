@@ -988,63 +988,58 @@ export default function AdminPage() {
 
             </div>
           </div>
-        ) : (
-          /* ======================================================================
-             TAB 2: MANAGE PACKS & CATALOG
-             ====================================================================== */
           <div className="admin-grid">
-            {/* Column 1: JSON Editor */}
-            <section className="admin-panel admin-panel-editor">
-              <div className="admin-panel-head">
-                <h3>Import Card Packages</h3>
-                <span className="admin-panel-subtitle">Seed package lists directly into game database</span>
-              </div>
-
-              <div className="preset-row">
-                <span className="preset-label">Load Preset:</span>
-                <button className="preset-btn" onClick={() => loadPreset(SPACE_PACK_SAMPLE)}>Space & Cosmos Pack</button>
-                <button className="preset-btn" onClick={() => loadPreset(TECH_PACK_SAMPLE)}>Tech & Startups Pack</button>
-              </div>
-
-              <div className="editor-wrap">
-                <textarea
-                  className={`admin-textarea ${validationError ? 'editor-err' : jsonText.trim() ? 'editor-success' : ''}`}
-                  placeholder={`{\n  "packs": [\n    {\n      "name": "Astronomy Pack",\n      "free": false,\n      "price": 100,\n      "prompts": ["I looked into space and saw ____."],\n      "answers": ["twinkle stars"]\n    }\n  ]\n}`}
-                  value={jsonText}
-                  onChange={(e) => setJsonText(e.target.value)}
-                />
-                {validationError && (
-                  <div className="validation-bar validation-err">
-                    ✕ {validationError}
-                  </div>
-                )}
-                {!validationError && jsonText.trim() && (
-                  <div className="validation-bar validation-success">
-                    ✓ Valid JSON Schema Structure
-                  </div>
-                )}
-              </div>
-
-              {importSuccess && (
-                <div className="import-success-toast">
-                  {importSuccess}
+            {/* Column 1: JSON Editor & Catalog Status */}
+            <div className="admin-col-left" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <section className="admin-panel admin-panel-editor">
+                <div className="admin-panel-head">
+                  <h3>Import Card Packages</h3>
+                  <span className="admin-panel-subtitle">Seed package lists directly into game database</span>
                 </div>
-              )}
 
-              <div className="admin-actions">
-                <Btn
-                  big={true}
-                  variant="primary"
-                  disabled={!!validationError || !jsonText.trim() || isSubmittingBE}
-                  onClick={handleSeedFirestore}
-                >
-                  {isSubmittingBE ? "Seeding Firestore..." : "Seed to Firestore DB"}
-                </Btn>
-              </div>
-            </section>
+                <div className="preset-row">
+                  <span className="preset-label">Load Preset:</span>
+                  <button className="preset-btn" onClick={() => loadPreset(SPACE_PACK_SAMPLE)}>Space & Cosmos Pack</button>
+                  <button className="preset-btn" onClick={() => loadPreset(TECH_PACK_SAMPLE)}>Tech & Startups Pack</button>
+                </div>
 
-            {/* Column 2: Catalog Status & Logs */}
-            <div className="admin-col-right">
+                <div className="editor-wrap">
+                  <textarea
+                    className={`admin-textarea ${validationError ? 'editor-err' : jsonText.trim() ? 'editor-success' : ''}`}
+                    placeholder={`{\n  "packs": [\n    {\n      "name": "Astronomy Pack",\n      "free": false,\n      "price": 100,\n      "prompts": ["I looked into space and saw ____."],\n      "answers": ["twinkle stars"]\n    }\n  ]\n}`}
+                    value={jsonText}
+                    onChange={(e) => setJsonText(e.target.value)}
+                  />
+                  {validationError && (
+                    <div className="validation-bar validation-err">
+                      ✕ {validationError}
+                    </div>
+                  )}
+                  {!validationError && jsonText.trim() && (
+                    <div className="validation-bar validation-success">
+                      ✓ Valid JSON Schema Structure
+                    </div>
+                  )}
+                </div>
+
+                {importSuccess && (
+                  <div className="import-success-toast">
+                    {importSuccess}
+                  </div>
+                )}
+
+                <div className="admin-actions">
+                  <Btn
+                    big={true}
+                    variant="primary"
+                    disabled={!!validationError || !jsonText.trim() || isSubmittingBE}
+                    onClick={handleSeedFirestore}
+                  >
+                    {isSubmittingBE ? "Seeding Firestore..." : "Seed to Firestore DB"}
+                  </Btn>
+                </div>
+              </section>
+
               {/* Database Status Panel */}
               <section className="admin-panel admin-panel-status">
                 <div className="admin-panel-head">
@@ -1096,10 +1091,13 @@ export default function AdminPage() {
                   </button>
                 )}
               </section>
+            </div>
 
+            {/* Column 2: Logs & Terminals */}
+            <div className="admin-col-right">
               {/* Console terminal */}
-              {terminalLogs.length > 0 && (
-                <section className="admin-panel admin-panel-terminal" style={{ marginTop: '20px' }}>
+              {terminalLogs.length > 0 ? (
+                <section className="admin-panel admin-panel-terminal">
                   <div className="admin-panel-head">
                     <h3>Backend API Console Output</h3>
                   </div>
@@ -1120,6 +1118,10 @@ export default function AdminPage() {
                     ))}
                   </div>
                 </section>
+              ) : (
+                <div className="muted" style={{ padding: '40px 24px', textAlign: 'center', border: '2px dashed rgba(255,255,255,0.06)', borderRadius: '18px', opacity: 0.5 }}>
+                  API Console Logs will appear here during db seeding operations.
+                </div>
               )}
             </div>
           </div>
