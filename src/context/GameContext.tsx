@@ -346,7 +346,7 @@ export function sortPacks(packs: Pack[], account: Account | null, isIndianUser: 
 const GameContext = createContext<GameContextType | null>(null);
 
 const DEFAULT_SETTINGS: GameSettings = {
-  name: "Alex", maxPlayers: 5, scoreLimit: 3, timer: 45,
+  name: "Alex", maxPlayers: 5, scoreLimit: 3, timer: 30,
   packs: ["classic"], family: false, custom: false, botsCount: 0
 };
 
