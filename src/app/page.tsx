@@ -331,7 +331,7 @@ export default function LandingPage() {
           {process.env.NEXT_PUBLIC_HUMLABS_SITE_ID && (
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', width: '100%' }}>
               <HumProvider siteId={process.env.NEXT_PUBLIC_HUMLABS_SITE_ID} template="big-number">
-                <BigNumber type="views" label="players right now" />
+                <BigNumber type="views" label="total players" />
               </HumProvider>
             </div>
           )}
