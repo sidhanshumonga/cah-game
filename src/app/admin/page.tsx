@@ -436,6 +436,20 @@ export default function AdminPage() {
     log(`[SYSTEM] All packages cleared.`);
   };
 
+  const handleDeletePack = async (packId: string) => {
+    const pack = firestorePacks.find(p => p.id === packId);
+    const packName = pack ? pack.name : packId;
+    if (!confirm(`Are you sure you want to delete the package "${packName}"? This action cannot be undone.`)) return;
+    try {
+      const { deletePackage } = await import('@/firebase/firestore');
+      await deletePackage(packId);
+      alert(`Package "${packName}" successfully deleted.`);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to delete package: ${err.message}`);
+    }
+  };
+
   const handleSignOut = () => {
     logout();
     router.push('/');
@@ -989,142 +1003,193 @@ export default function AdminPage() {
             </div>
           </div>
         ) : (
-          <div className="admin-grid">
-            {/* Column 1: JSON Editor & Catalog Status */}
-            <div className="admin-col-left" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <section className="admin-panel admin-panel-editor">
-                <div className="admin-panel-head">
-                  <h3>Import Card Packages</h3>
-                  <span className="admin-panel-subtitle">Seed package lists directly into game database</span>
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+            {/* 1. JSON Editor */}
+            <section className="admin-panel admin-panel-editor">
+              <div className="admin-panel-head">
+                <h3>Import Card Packages</h3>
+                <span className="admin-panel-subtitle">Seed package lists directly into game database</span>
+              </div>
 
-                <div className="preset-row">
-                  <span className="preset-label">Load Preset:</span>
-                  <button className="preset-btn" onClick={() => loadPreset(SPACE_PACK_SAMPLE)}>Space & Cosmos Pack</button>
-                  <button className="preset-btn" onClick={() => loadPreset(TECH_PACK_SAMPLE)}>Tech & Startups Pack</button>
-                </div>
+              <div className="preset-row">
+                <span className="preset-label">Load Preset:</span>
+                <button className="preset-btn" onClick={() => loadPreset(SPACE_PACK_SAMPLE)}>Space & Cosmos Pack</button>
+                <button className="preset-btn" onClick={() => loadPreset(TECH_PACK_SAMPLE)}>Tech & Startups Pack</button>
+              </div>
 
-                <div className="editor-wrap">
-                  <textarea
-                    className={`admin-textarea ${validationError ? 'editor-err' : jsonText.trim() ? 'editor-success' : ''}`}
-                    placeholder={`{\n  "packs": [\n    {\n      "name": "Astronomy Pack",\n      "free": false,\n      "price": 100,\n      "prompts": ["I looked into space and saw ____."],\n      "answers": ["twinkle stars"]\n    }\n  ]\n}`}
-                    value={jsonText}
-                    onChange={(e) => setJsonText(e.target.value)}
-                  />
-                  {validationError && (
-                    <div className="validation-bar validation-err">
-                      ✕ {validationError}
-                    </div>
-                  )}
-                  {!validationError && jsonText.trim() && (
-                    <div className="validation-bar validation-success">
-                      ✓ Valid JSON Schema Structure
-                    </div>
-                  )}
-                </div>
-
-                {importSuccess && (
-                  <div className="import-success-toast">
-                    {importSuccess}
+              <div className="editor-wrap">
+                <textarea
+                  className={`admin-textarea ${validationError ? 'editor-err' : jsonText.trim() ? 'editor-success' : ''}`}
+                  placeholder={`{\n  "packs": [\n    {\n      "name": "Astronomy Pack",\n      "free": false,\n      "price": 100,\n      "prompts": ["I looked into space and saw ____."],\n      "answers": ["twinkle stars"]\n    }\n  ]\n}`}
+                  value={jsonText}
+                  onChange={(e) => setJsonText(e.target.value)}
+                />
+                {validationError && (
+                  <div className="validation-bar validation-err">
+                    ✕ {validationError}
                   </div>
                 )}
-
-                <div className="admin-actions">
-                  <Btn
-                    big={true}
-                    variant="primary"
-                    disabled={!!validationError || !jsonText.trim() || isSubmittingBE}
-                    onClick={handleSeedFirestore}
-                  >
-                    {isSubmittingBE ? "Seeding Firestore..." : "Seed to Firestore DB"}
-                  </Btn>
-                </div>
-              </section>
-
-              {/* Database Status Panel */}
-              <section className="admin-panel admin-panel-status">
-                <div className="admin-panel-head">
-                  <h3>Card Catalog Status</h3>
-                </div>
-                
-                <div className="status-grid">
-                  <div className="status-item">
-                    <span className="status-num">{packs.length}</span>
-                    <span className="status-label">Total Packs</span>
+                {!validationError && jsonText.trim() && (
+                  <div className="validation-bar validation-success">
+                    ✓ Valid JSON Schema Structure
                   </div>
-                  <div className="status-item">
-                    <span className="status-num">{firestorePacks.length}</span>
-                    <span className="status-label">🔥 In Firestore</span>
-                  </div>
-                </div>
-
-                <div className="catalog-list-wrap">
-                  <h4 className="catalog-list-title">Firestore Packages ({firestorePacks.length}):</h4>
-                  <div className="catalog-list">
-                    {firestorePacks.length === 0 && <p className="muted" style={{padding:'8px 0'}}>No packages seeded yet.</p>}
-                    {firestorePacks.map((p) => (
-                      <div key={p.id} className="catalog-item">
-                        <div className="catalog-item-main">
-                          <span className="catalog-item-name">{p.name}</span>
-                          <span className="custom-badge" style={{background:'rgba(44,196,190,0.15)',color:'#2BC4BE'}}>Firestore</span>
-                        </div>
-                        <div className="catalog-item-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className="catalog-item-cards">{p.cards} cards</span>
-                          {p.free ? (
-                            <span className="catalog-item-price">Free</span>
-                          ) : (
-                            <span className="catalog-item-price"><Coin size={10} /> {p.price}</span>
-                          )}
-                          {p.familyFriendly === false ? (
-                            <span className="custom-badge" style={{background:'rgba(255,77,79,0.15)',color:'#FF4D4F',fontSize:'10.5px',padding:'2px 7px',borderRadius:'6px'}}>Adult</span>
-                          ) : (
-                            <span className="custom-badge" style={{background:'rgba(200,240,81,0.15)',color:'var(--accent)',fontSize:'10.5px',padding:'2px 7px',borderRadius:'6px'}}>Family-Friendly</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {firestorePacks.length > 0 && (
-                  <button className="clear-db-btn" onClick={handleClearFirestore}>
-                    ✕ Wipe All Firestore Packages
-                  </button>
                 )}
-              </section>
-            </div>
+              </div>
 
-            {/* Column 2: Logs & Terminals */}
-            <div className="admin-col-right">
-              {/* Console terminal */}
-              {terminalLogs.length > 0 ? (
-                <section className="admin-panel admin-panel-terminal">
-                  <div className="admin-panel-head">
-                    <h3>Backend API Console Output</h3>
-                  </div>
-                  <div className="terminal-screen">
-                    {terminalLogs.map((line, index) => (
-                      <div
-                        key={index}
-                        className={
-                          line.startsWith("<") ? "term-in" :
-                          line.startsWith("[ERROR]") ? "term-err" :
-                          line.startsWith("[SYSTEM]") ? "term-sys" :
-                          line.startsWith(">") ? "term-out" :
-                          "term-text"
-                        }
-                      >
-                        {line}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ) : (
-                <div className="muted" style={{ padding: '40px 24px', textAlign: 'center', border: '2px dashed rgba(255,255,255,0.06)', borderRadius: '18px', opacity: 0.5 }}>
-                  API Console Logs will appear here during db seeding operations.
+              {importSuccess && (
+                <div className="import-success-toast">
+                  {importSuccess}
                 </div>
               )}
-            </div>
+
+              <div className="admin-actions">
+                <Btn
+                  big={true}
+                  variant="primary"
+                  disabled={!!validationError || !jsonText.trim() || isSubmittingBE}
+                  onClick={handleSeedFirestore}
+                >
+                  {isSubmittingBE ? "Seeding Firestore..." : "Seed to Firestore DB"}
+                </Btn>
+              </div>
+            </section>
+
+            {/* 2. Database Status Panel (Premium Table) */}
+            <section className="admin-panel admin-panel-status">
+              <div className="admin-panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3>Card Catalog Status</h3>
+                  <span className="admin-panel-subtitle">Manage expansion decks loaded in Firestore</span>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    Total: <strong style={{ color: 'var(--accent)' }}>{packs.length}</strong>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    In Firestore: <strong style={{ color: '#2BC4BE' }}>{firestorePacks.length}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="premium-table-wrap" style={{ marginTop: '16px' }}>
+                <table className="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Package Name</th>
+                      <th>Package ID</th>
+                      <th style={{ textAlign: 'center' }}>Cards</th>
+                      <th>Price / Access</th>
+                      <th>Target Audience</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {firestorePacks.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '24px 0', opacity: 0.5 }}>
+                          No packages seeded yet. Use the importer above to add packages.
+                        </td>
+                      </tr>
+                    ) : (
+                      firestorePacks.map((p) => (
+                        <tr key={p.id}>
+                          <td style={{ fontWeight: 700, fontSize: '14px' }}>
+                            {p.name}
+                          </td>
+                          <td style={{ fontFamily: 'monospace', opacity: 0.7, fontSize: '12.5px' }}>
+                            {p.id}
+                          </td>
+                          <td style={{ textAlign: 'center', fontWeight: 800 }}>
+                            {p.cards}
+                          </td>
+                          <td>
+                            {p.free ? (
+                              <span className="custom-badge" style={{ background: 'rgba(44,196,190,0.15)', color: '#2BC4BE', fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}>Free</span>
+                            ) : (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                                <Coin size={12} /> {p.price}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {p.familyFriendly === false ? (
+                              <span className="custom-badge" style={{ background: 'rgba(255,77,79,0.15)', color: '#FF4D4F', fontSize: '10.5px', padding: '2px 7px', borderRadius: '6px' }}>Adult</span>
+                            ) : (
+                              <span className="custom-badge" style={{ background: 'rgba(200,240,81,0.15)', color: 'var(--accent)', fontSize: '10.5px', padding: '2px 7px', borderRadius: '6px' }}>Family-Friendly</span>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              className="action-btn action-delete"
+                              onClick={() => handleDeletePack(p.id)}
+                              style={{
+                                background: 'rgba(255, 77, 79, 0.1)',
+                                color: '#ff4d4f',
+                                border: '1px solid rgba(255, 77, 79, 0.2)',
+                                borderRadius: '6px',
+                                padding: '4px 10px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {firestorePacks.length > 0 && (
+                <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button 
+                    className="clear-db-btn" 
+                    onClick={handleClearFirestore}
+                    style={{
+                      background: 'rgba(255, 77, 79, 0.08)',
+                      color: '#ff4d4f',
+                      border: '1px solid rgba(255, 77, 79, 0.15)',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✕ Wipe All Firestore Packages
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* 3. API logs output */}
+            {terminalLogs.length > 0 && (
+              <section className="admin-panel admin-panel-terminal">
+                <div className="admin-panel-head">
+                  <h3>Backend API Console Output</h3>
+                </div>
+                <div className="terminal-screen">
+                  {terminalLogs.map((line, index) => (
+                    <div
+                      key={index}
+                      className={
+                        line.startsWith("<") ? "term-in" :
+                        line.startsWith("[ERROR]") ? "term-err" :
+                        line.startsWith("[SYSTEM]") ? "term-sys" :
+                        line.startsWith(">") ? "term-out" :
+                        "term-text"
+                      }
+                    >
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
 
