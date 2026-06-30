@@ -835,7 +835,7 @@ function MultiplayerGame({ code }: { code: string }) {
       <div className="screen center-screen">
         <FeedbackModal
           open={showAbortFeedbackModal}
-          showReward={false}
+          showReward={true}
           code={code}
           onClose={() => router.replace('/')}
           onSubmitted={() => router.replace('/')}

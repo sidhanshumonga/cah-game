@@ -100,7 +100,9 @@ export default function FeedbackModal({ open, showReward, code, onClose, onSubmi
         // Award 5 coins if it's the game completion scenario
         if (showReward && account) {
           try {
-            buyCredits({ coins: 5, tag: "Feedback bonus" });
+            if (account.guest) {
+              buyCredits({ coins: 5, tag: "Feedback bonus" });
+            }
           } catch (creditsErr) {
             console.error("Failed to credit feedback coins:", creditsErr);
           }

@@ -280,7 +280,9 @@ function RateRound({ onSubmitted }: RateRoundProps) {
         // Award 5 coins for sharing feedback
         if (account) {
           try {
-            buyCredits({ coins: 5, tag: "Feedback bonus" });
+            if (account.guest) {
+              buyCredits({ coins: 5, tag: "Feedback bonus" });
+            }
           } catch (creditsErr) {
             console.error("Failed to credit feedback coins:", creditsErr);
           }

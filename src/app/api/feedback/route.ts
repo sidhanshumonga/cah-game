@@ -11,6 +11,24 @@ export async function POST(req: Request) {
     }
 
     const feedbackRef = adminDb.collection('feedback');
+    
+    // Check if this is a valid post-game feedback for a non-guest user
+    let alreadyRewarded = false;
+    const isEligibleFeedback = type === 'game-end' || type === 'game-abort';
+    const isRealUser = uid && typeof uid === 'string' && !uid.includes('@guest');
+
+    if (isEligibleFeedback && isRealUser && code) {
+      const dupCheck = await feedbackRef
+        .where('uid', '==', uid)
+        .where('code', '==', code)
+        .where('type', '==', type)
+        .limit(1)
+        .get();
+      if (!dupCheck.empty) {
+        alreadyRewarded = true;
+      }
+    }
+
     await feedbackRef.add({
       rating: rating !== undefined ? Number(rating) : null,
       reasons: reasons || [],
@@ -21,6 +39,32 @@ export async function POST(req: Request) {
       type: type || 'game-end',
       createdAt: new Date().toISOString()
     });
+
+    if (isEligibleFeedback && isRealUser && !alreadyRewarded) {
+      const userRef = adminDb.collection('users').doc(uid);
+      const userDoc = await userRef.get();
+      if (userDoc.exists) {
+        const userData = userDoc.data() || {};
+        const currentCredits = Number(userData.credits || 0);
+        const currentHistory = Array.isArray(userData.history) ? userData.history : [];
+        
+        const newCredits = currentCredits + 5;
+        const newHistory = [
+          {
+            label: "Coin top-up (Feedback bonus)",
+            delta: 5,
+            ts: Date.now()
+          },
+          ...currentHistory
+        ];
+
+        await userRef.update({
+          credits: newCredits,
+          history: newHistory
+        });
+        console.log(`[feedback] Credited 5 feedback coins to user ${uid}`);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
