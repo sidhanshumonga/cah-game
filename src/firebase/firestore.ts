@@ -19,8 +19,18 @@ import {
   orderBy,
   Unsubscribe,
   deleteField,
+  collectionGroup,
 } from 'firebase/firestore';
 import { db } from './config';
+
+export function getPlatformType(): 'mobile' | 'desktop' {
+  if (typeof window === 'undefined') return 'desktop';
+  const ua = window.navigator.userAgent || "";
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const hasTouch = window.navigator.maxTouchPoints > 0;
+  const isMobileSize = window.innerWidth <= 768;
+  return (isMobileUA || (hasTouch && isMobileSize)) ? 'mobile' : 'desktop';
+}
 
 // ─────────────────────────────────────────────
 // USER PROFILES
@@ -142,6 +152,7 @@ export async function createRoom(
     status: 'lobby',
     settings,
     createdAt: serverTimestamp(),
+    createdByPlatform: getPlatformType(),
   });
 }
 
@@ -265,6 +276,7 @@ export async function joinRoom(code: string, player: {
     ready: player.isHost,
     isConnected: true,
     joinedAt: serverTimestamp(),
+    platform: getPlatformType(),
   });
 }
 
@@ -321,6 +333,7 @@ export async function addBotPlayer(code: string, bot: {
     isBot: true,
     isConnected: true,
     joinedAt: serverTimestamp(),
+    platform: 'bot',
   });
 }
 
@@ -595,6 +608,21 @@ export async function getAllRooms(): Promise<any[]> {
     return snap.docs.map(d => ({ code: d.id, ...d.data() }));
   } catch (e) {
     console.error('getAllRooms failed', e);
+    return [];
+  }
+}
+
+export async function getAllPlayersAcrossRooms(): Promise<any[]> {
+  if (!db) return [];
+  try {
+    const snap = await getDocs(collectionGroup(db, 'players'));
+    return snap.docs.map(d => ({
+      uid: d.id,
+      roomCode: d.ref.parent.parent?.id || '',
+      ...d.data()
+    }));
+  } catch (e) {
+    console.error('getAllPlayersAcrossRooms failed', e);
     return [];
   }
 }

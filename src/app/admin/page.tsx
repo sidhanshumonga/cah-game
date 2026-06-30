@@ -72,6 +72,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [playersAcrossRooms, setPlayersAcrossRooms] = useState<any[]>([]);
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationLog, setMigrationLog] = useState<string | null>(null);
 
@@ -97,19 +98,21 @@ export default function AdminPage() {
     let unsubAuth: (() => void) | null = null;
 
     const fetchAnalytics = () => {
-      import('@/firebase/firestore').then(({ getPurchases, getAllUsers, getAllRooms, getFeedbacks }) => {
+      import('@/firebase/firestore').then(({ getPurchases, getAllUsers, getAllRooms, getFeedbacks, getAllPlayersAcrossRooms }) => {
         if (!isSubscribed) return;
-        Promise.all([getPurchases(), getAllUsers(), getAllRooms(), getFeedbacks()]).then(([purchRes, userRes, roomRes, feedRes]) => {
+        Promise.all([getPurchases(), getAllUsers(), getAllRooms(), getFeedbacks(), getAllPlayersAcrossRooms()]).then(([purchRes, userRes, roomRes, feedRes, playersRes]) => {
           if (!isSubscribed) return;
           const safePurch = Array.isArray(purchRes) ? purchRes : [];
           const safeUsers = Array.isArray(userRes) ? userRes : [];
           const safeRooms = Array.isArray(roomRes) ? roomRes : [];
           const safeFeed = Array.isArray(feedRes) ? feedRes : [];
+          const safePlayers = Array.isArray(playersRes) ? playersRes : [];
           safePurch.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
           setPurchases(safePurch);
           setUsers(safeUsers);
           setRooms(safeRooms);
           setFeedbacks(safeFeed);
+          setPlayersAcrossRooms(safePlayers);
         }).catch(err => console.error("fetchAnalytics failed", err));
       });
     };
@@ -323,7 +326,87 @@ export default function AdminPage() {
       endedGames,
       sortedPackUsage
     };
-  }, [rooms, packs, firestorePacks]);
+  }, [rooms]);
+
+  const platformStats = useMemo(() => {
+    let createdDesktop = 0;
+    let createdMobile = 0;
+    let createdUnknown = 0;
+
+    let startedDesktop = 0;
+    let startedMobile = 0;
+    let startedUnknown = 0;
+
+    let playingDesktopHost = 0;
+    let playingMobileHost = 0;
+    let playingUnknownHost = 0;
+
+    let activePlayersDesktop = 0;
+    let activePlayersMobile = 0;
+    let activePlayersBot = 0;
+
+    let totalPlayersDesktop = 0;
+    let totalPlayersMobile = 0;
+    let totalPlayersBot = 0;
+
+    if (Array.isArray(rooms)) {
+      rooms.forEach((r) => {
+        if (!r) return;
+        if (r.createdByPlatform === 'desktop') createdDesktop++;
+        else if (r.createdByPlatform === 'mobile') createdMobile++;
+        else createdUnknown++;
+
+        if (r.startedByPlatform === 'desktop') startedDesktop++;
+        else if (r.startedByPlatform === 'mobile') startedMobile++;
+        else if (r.status === 'playing' || r.status === 'completed' || r.status === 'ended') {
+          startedUnknown++;
+        }
+
+        if (r.status === 'playing') {
+          if (r.createdByPlatform === 'desktop') playingDesktopHost++;
+          else if (r.createdByPlatform === 'mobile') playingMobileHost++;
+          else playingUnknownHost++;
+        }
+      });
+    }
+
+    if (Array.isArray(playersAcrossRooms)) {
+      playersAcrossRooms.forEach((p) => {
+        if (!p) return;
+        const parentRoom = rooms.find((r) => r.code === p.roomCode);
+        const isRoomPlaying = parentRoom?.status === 'playing';
+
+        if (p.platform === 'desktop') {
+          totalPlayersDesktop++;
+          if (isRoomPlaying) activePlayersDesktop++;
+        } else if (p.platform === 'mobile') {
+          totalPlayersMobile++;
+          if (isRoomPlaying) activePlayersMobile++;
+        } else if (p.platform === 'bot' || p.isBot) {
+          totalPlayersBot++;
+          if (isRoomPlaying) activePlayersBot++;
+        }
+      });
+    }
+
+    return {
+      createdDesktop,
+      createdMobile,
+      createdUnknown,
+      startedDesktop,
+      startedMobile,
+      startedUnknown,
+      playingDesktopHost,
+      playingMobileHost,
+      playingUnknownHost,
+      activePlayersDesktop,
+      activePlayersMobile,
+      activePlayersBot,
+      totalPlayersDesktop,
+      totalPlayersMobile,
+      totalPlayersBot,
+    };
+  }, [rooms, playersAcrossRooms]);
 
   const handleMigratePurchases = async () => {
     setIsMigrating(true);
@@ -864,6 +947,130 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Platform Analytics Cards */}
+            <div 
+              style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+                gap: '24px', 
+                width: '100%', 
+                marginTop: '28px',
+                marginBottom: '28px' 
+              }}
+            >
+              {/* Card 1: Game Creation & Starts */}
+              <div className="analytics-table-card" style={{ padding: '24px', margin: 0 }}>
+                <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800, color: 'var(--accent2)', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' }}>
+                  🎮 Game Sessions by Host Platform
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <span style={{ fontSize: '12.5px', opacity: 0.6 }}>Total Created</span>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Desktop</span>
+                        <strong style={{ fontSize: '16px', color: '#00d2ff' }}>{platformStats.createdDesktop}</strong>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Mobile</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--accent)' }}>{platformStats.createdMobile}</strong>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Legacy</span>
+                        <strong style={{ fontSize: '16px', opacity: 0.7 }}>{platformStats.createdUnknown}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span style={{ fontSize: '12.5px', opacity: 0.6 }}>Total Started</span>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Desktop</span>
+                        <strong style={{ fontSize: '16px', color: '#00d2ff' }}>{platformStats.startedDesktop}</strong>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Mobile</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--accent)' }}>{platformStats.startedMobile}</strong>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Legacy</span>
+                        <strong style={{ fontSize: '16px', opacity: 0.7 }}>{platformStats.startedUnknown}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Stuck Rooms (Playing State) */}
+              <div className="analytics-table-card" style={{ padding: '24px', margin: 0 }}>
+                <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800, color: '#ff4d4f', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' }}>
+                  ⚠️ Active Rooms Stuck in "Playing"
+                </h4>
+                <p style={{ fontSize: '12px', opacity: 0.6, margin: '-6px 0 16px 0', lineHeight: 1.35 }}>
+                  Rooms currently in playing state grouped by host device, highlighting potential crash/freeze environments.
+                </p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                  <div style={{ flex: 1, background: 'rgba(255,77,79,0.04)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,77,79,0.1)' }}>
+                    <span style={{ display: 'block', fontSize: '12px', opacity: 0.6 }}>Desktop Host</span>
+                    <strong style={{ fontSize: '22px', color: '#ff4d4f', display: 'block', marginTop: '4px' }}>{platformStats.playingDesktopHost}</strong>
+                  </div>
+                  <div style={{ flex: 1, background: 'rgba(255,77,79,0.04)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,77,79,0.1)' }}>
+                    <span style={{ display: 'block', fontSize: '12px', opacity: 0.6 }}>Mobile Host</span>
+                    <strong style={{ fontSize: '22px', color: '#ff4d4f', display: 'block', marginTop: '4px' }}>{platformStats.playingMobileHost}</strong>
+                  </div>
+                  <div style={{ flex: 1, background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <span style={{ display: 'block', fontSize: '12px', opacity: 0.5 }}>Legacy/Unknown</span>
+                    <strong style={{ fontSize: '22px', opacity: 0.6, display: 'block', marginTop: '4px' }}>{platformStats.playingUnknownHost}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Player Platform Breakdown */}
+              <div className="analytics-table-card" style={{ padding: '24px', margin: 0 }}>
+                <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800, color: '#2bc4be', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' }}>
+                  👥 Joined Players by Platform
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <span style={{ fontSize: '12.5px', opacity: 0.6 }}>Active Players (In Playing Rooms)</span>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Desktop</span>
+                        <strong style={{ fontSize: '16px', color: '#00d2ff' }}>{platformStats.activePlayersDesktop}</strong>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Mobile</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--accent)' }}>{platformStats.activePlayersMobile}</strong>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Bots</span>
+                        <strong style={{ fontSize: '16px', color: '#2bc4be' }}>{platformStats.activePlayersBot}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '12.5px', opacity: 0.6 }}>Total Players (All History)</span>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Desktop</span>
+                        <strong style={{ fontSize: '16px', color: '#00d2ff' }}>{platformStats.totalPlayersDesktop}</strong>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Mobile</span>
+                        <strong style={{ fontSize: '16px', color: 'var(--accent)' }}>{platformStats.totalPlayersMobile}</strong>
+                      </div>
+                      <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ display: 'block', fontSize: '11px', opacity: 0.5 }}>Bots</span>
+                        <strong style={{ fontSize: '16px', color: '#2bc4be' }}>{platformStats.totalPlayersBot}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Room Analytics stacked full-width */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', width: '100%' }}>
               
@@ -932,7 +1139,44 @@ export default function AdminPage() {
                             return (
                               <tr key={r.code || idx}>
                                 <td style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '15px', color: 'var(--accent2)' }}>{r.code}</td>
-                                <td style={{ fontWeight: 600 }}>{r.hostName || 'Anonymous'}</td>
+                                <td style={{ fontWeight: 600 }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <span>{r.hostName || 'Anonymous'}</span>
+                                      {r.createdByPlatform && (
+                                        <span 
+                                          style={{ 
+                                            fontSize: '9px', 
+                                            padding: '1.5px 5px', 
+                                            borderRadius: '4px', 
+                                            background: r.createdByPlatform === 'mobile' ? 'rgba(255, 201, 60, 0.12)' : 'rgba(0, 210, 255, 0.12)', 
+                                            color: r.createdByPlatform === 'mobile' ? 'var(--accent)' : '#00d2ff', 
+                                            fontWeight: 700 
+                                          }}
+                                        >
+                                          {r.createdByPlatform === 'mobile' ? '📱 Mobile' : '💻 Desktop'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {/* Player device mix */}
+                                    {(() => {
+                                      const roomPlayersList = playersAcrossRooms.filter(p => p.roomCode === r.code);
+                                      const desktopCount = roomPlayersList.filter(p => p.platform === 'desktop').length;
+                                      const mobileCount = roomPlayersList.filter(p => p.platform === 'mobile').length;
+                                      const botCount = roomPlayersList.filter(p => p.platform === 'bot' || p.isBot).length;
+                                      
+                                      if (desktopCount === 0 && mobileCount === 0 && botCount === 0) return null;
+                                      return (
+                                        <div style={{ fontSize: '10.5px', opacity: 0.6, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                          <span>Players:</span>
+                                          {desktopCount > 0 && <span>💻 {desktopCount}</span>}
+                                          {mobileCount > 0 && <span>📱 {mobileCount}</span>}
+                                          {botCount > 0 && <span>🤖 {botCount}</span>}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </td>
                                 <td style={{ opacity: 0.7, fontSize: '12.5px' }}>{dateStr}</td>
                                 <td>
                                   <span style={badgeStyle}>

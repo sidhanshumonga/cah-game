@@ -14,7 +14,11 @@ service cloud.firestore {
                     && request.resource.data.packs == resource.data.packs
                     && request.resource.data.upgrades == resource.data.upgrades
                     && request.resource.data.history == resource.data.history;
-      allow delete: if false;
+    }
+
+    // Allow collection group queries on the players subcollection
+    match /{path=**}/players/{uid} {
+      allow read: if true;
     }
 
     // Feedback: only the admin can read directly; writes must go through verified API

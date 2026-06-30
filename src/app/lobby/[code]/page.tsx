@@ -358,7 +358,7 @@ export default function LobbyPage() {
     if (isMultiplayer) {
       // Write game started status to Firestore — all clients will navigate via subscription
       try {
-        const { updateRoom, startGame: fsStartGame } = await import('@/firebase/firestore');
+        const { updateRoom, startGame: fsStartGame, getPlatformType } = await import('@/firebase/firestore');
         let currentPlayers = [...roomPlayers];
         const players = currentPlayers.map(p => p.uid);
         const scores: Record<string, number> = {};
@@ -368,7 +368,10 @@ export default function LobbyPage() {
         const nonHost = players.filter(uid => uid !== (account?.uid || account?.email));
         const judgeOrder = [players[0], ...nonHost];
         await fsStartGame(code, 1, prompt, judgeOrder[0], judgeOrder, scores);
-        await updateRoom(code, { status: 'playing' });
+        await updateRoom(code, { 
+          status: 'playing',
+          startedByPlatform: getPlatformType()
+        });
 
         const { logAnalyticsEvent } = await import('@/firebase/config');
         const botsCount = currentPlayers.filter(p => p.isBot).length;
